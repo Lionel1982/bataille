@@ -25,6 +25,7 @@ const SFX=(()=>{let ctx=null,on=true;
     dodge:()=>{noise(.2,.15,6000,0,3);tone(900,1600,.12,'sine',.06);},
     objection:()=>{tone(220,220,.08,'square',.12);tone(330,330,.18,'square',.12,.08);},
     poison:()=>{tone(300,150,.25,'sine',.12);},
+    whoosh:()=>{noise(.18,.22,2200,0,2.5);tone(1200,300,.15,'sine',.05);},
     win:()=>{[523,659,784,1046,1318].forEach((f,i)=>tone(f,f,.25,'square',.1,i*.12));},
     lose:()=>{[392,330,262,196].forEach((f,i)=>tone(f,f*.97,.35,'triangle',.15,i*.2));},
     turn:()=>{tone(660,660,.07,'square',.08);tone(880,880,.1,'square',.08,.08);}

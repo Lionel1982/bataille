@@ -6,25 +6,29 @@
 <div class="screen on" id="build">
   <div class="bhead"><h1>BATAILLE DE PO/ETS</h1><div class="bud" id="bud"></div></div>
   <div class="bbody">
-    <h2>1. Ton animal</h2><div class="grid" id="pets"></div>
-    <h2>2. Tes fringues</h2><div class="opts" id="tops"></div><div class="opts" id="bottoms"></div>
-    <h2>3. Ton deck (30 cartes)</h2><div id="deck"></div>
-    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px"><button id="soundBtn" class="tg">🔊 SON : ON</button><button id="fastBtn" class="tg">▶ RAPIDE : OFF</button><button id="pauseBtn" class="tg" >▶ PAUSE : OFF</button></div>
-    <div style="font-size:10px;opacity:.6;margin-top:3px">Pause ON = le jeu attend ton clic après chaque carte jouée.</div>
+    <h2>1. Ton avatar</h2><div class="avrow" id="avatars"></div>
+    <h2>2. Ton animal</h2><div class="grid" id="pets"></div>
+    <h2>3. Tes fringues</h2><div class="opts" id="tops"></div><div class="opts" id="bottoms"></div>
+    <h2>4. Ton deck <span style="font-size:12px;font-weight:400">(30 cartes, min. 8 🍖)</span></h2>
+    <div class="deckbtns"><button id="suggestBtn">✨ Deck conseillé</button><button id="clearBtn">🗑️ Vider</button></div>
+    <div id="deck"></div>
+    <div class="toggles"><button id="soundBtn" class="tg">🔊 SON : ON</button><button id="fastBtn" class="tg">▶ RAPIDE : OFF</button><button id="pauseBtn" class="tg">▶ PAUSE : OFF</button></div>
+    <div style="font-size:10px;opacity:.6;margin:3px 0 0">Pause ON = le jeu attend ton clic après chaque carte. Ton deck est sauvegardé automatiquement.</div>
   </div>
   <div class="bfoot"><button class="big" id="goBtn">⚔️ COMBATTRE !</button></div>
 </div>
 
 <div class="screen" id="fight">
-  <div class="scene" id="scene"><div class="sky"></div><div class="house h1"></div><div class="house h2"></div><div class="house h3"></div><div class="road"></div>
-    <div class="plat" style="left:178px;top:134px;width:204px;height:48px"></div>
-    <div class="plat" style="left:-34px;top:262px;width:320px;height:100px"></div>
-    <div class="ent" id="oppPet" style="left:170px;top:60px;width:120px;height:110px"></div>
-    <div class="ent" id="oppPote" style="left:285px;top:18px;width:90px;height:150px"></div>
-    <div class="ent me" id="myPet" style="left:0px;top:150px;width:160px;height:160px;z-index:7"></div>
-    <div class="ent" id="myPote" style="left:150px;top:150px;width:160px;height:220px;z-index:6"></div>
+  <div class="scene" id="scene">
+    <div class="sky"></div><div class="house h1"></div><div class="house h2"></div><div class="house h3"></div><div class="road"></div>
+    <div class="plat" style="left:150px;top:120px;width:150px;height:40px"></div>
+    <div class="plat" style="left:-10px;top:214px;width:230px;height:70px"></div>
+    <div class="ent" id="oppPet" style="left:150px;top:70px;width:130px;height:120px"></div>
+    <div class="ent" id="oppPote" style="left:286px;top:16px;width:86px;height:140px"></div>
+    <div class="ent me" id="myPet" style="left:4px;top:168px;width:150px;height:150px;z-index:7"></div>
+    <div class="ent" id="myPote" style="left:150px;top:208px;width:220px;height:160px;z-index:6;overflow:hidden"></div>
     <div class="res"><div class="tok" id="tokFood">🍖</div><div class="num" id="foodTxt">0</div><div class="tok" style="border-color:#ff73c8">🥤</div><div class="pips" id="sodaPips"></div></div>
-    <div class="hpbox" style="left:8px;top:58px"><div class="top"><span id="oppName"></span><span id="oppHpTxt"></span></div><div class="hpbar"><div class="hpfill" id="oppHp"></div></div><div class="st" id="oppSt"></div></div>
+    <div class="hpbox" style="left:8px;top:52px"><div class="top"><span id="oppName"></span><span id="oppHpTxt"></span></div><div class="hpbar"><div class="hpfill" id="oppHp"></div></div><div class="st" id="oppSt"></div></div>
     <div class="hpbox" style="right:8px;bottom:8px"><div class="top"><span id="myName"></span><span id="myHpTxt"></span></div><div class="hpbar"><div class="hpfill" id="myHp"></div></div><div class="st" id="mySt"></div></div>
   </div>
   <div class="mid">
