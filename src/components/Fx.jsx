@@ -54,18 +54,29 @@ const Fx = forwardRef(function Fx({ getG, dMul, pausedRef }, ref){
       const src = card.target==='pote'? poteNode(srcWho) : petNode(srcWho)
       const dstWho = target.isMe?'me':'opp'
       const dst = (card.target==='self') ? petNode(srcWho) : (card.target==='pote'? poteNode(dstWho) : petNode(dstWho))
-      // dessin d'action
-      const art = actionArt(card._key)
-      if(art){ const a=spawn('actionart','<img src="'+art+'">', 0,0, 0); a.style.left='50%'; a.style.top='46%'; setTimeout(()=>{a.classList.add('out'); setTimeout(()=>a.remove(),300)}, 650) }
-      // onomatopée (grande pour les finishers, sinon normale mais toujours visible)
-      this.bigWord(card.fx, card.col, attacker.isMe)
-      // glissade
       const a=center(src), b=center(dst), dx=b.x-a.x, dy=b.y-a.y
+      // SON specifique par sort
+      const SND={morsure:'bark',griffe:'cat',sumo:'bark',charge:'bark',bave:'squirt',tsunami:'squirt',sable:'squirt',fiente:'squirt',pue:'gas',nuclear:'nuke',venin:'cat'}
+      const snd=SND[card._key]; if(snd && SFX[snd]) SFX[snd](); else SFX.whoosh&&SFX.whoosh()
+      // DESSIN d'action : place vers la cible, oriente dans le sens de l'attaque (miroir si l'ennemi attaque, droite->gauche)
+      const art = actionArt(card._key)
+      if(art && card.target!=='self'){
+        const ax = a.x + dx*0.62, ay = a.y + dy*0.62
+        const mir = attacker.isMe ? 1 : -1   // tes attaques: gauche->droite ; ennemi: droite->gauche
+        const el = spawn('actionart','<img src="'+art+'" style="transform:scaleX('+mir+')">', ax, ay, 0)
+        el.style.left=ax+'px'; el.style.top=ay+'px'; el.style.transform='translate(-50%,-50%)'
+        setTimeout(()=>{el.classList.add('out'); setTimeout(()=>el.remove(),300)}, 650)
+      } else if(art){ // soin : au centre sur soi
+        const el=spawn('actionart','<img src="'+art+'">',a.x,a.y-10,0); el.style.left=a.x+'px'; el.style.top=(a.y-10)+'px'
+        setTimeout(()=>{el.classList.add('out'); setTimeout(()=>el.remove(),300)},650)
+      }
+      // onomatopée
+      this.bigWord(card.fx, card.col, attacker.isMe)
+      // glissade de l'attaquant vers la cible + trainee de vitesse
       const strip=spawn('slidetrail','',a.x,a.y,700); strip.style.setProperty('--c',card.col)
       strip.style.width=Math.hypot(dx,dy)+'px'; strip.style.transformOrigin='0 50%'; strip.style.transform=`translate(0,-50%) rotate(${Math.atan2(dy,dx)}rad)`
       src.style.zIndex=20
       src.animate([{transform:'none'},{transform:`translate(${dx*.5}px,${dy*.5}px) scale(1.16)`,offset:.4},{transform:`translate(${dx}px,${dy}px) scale(1.08)`,offset:.65},{transform:'none'}],{duration:520*dMul(),easing:'cubic-bezier(.5,0,.3,1)'})
-      SFX.whoosh&&SFX.whoosh()
       await sleep(330)
       setTimeout(()=>src.style.zIndex='',250)
     },
@@ -94,11 +105,11 @@ const Fx = forwardRef(function Fx({ getG, dMul, pausedRef }, ref){
       const scene=sceneEl(); scene.classList.add('slowmo')
       const base=center(poteNode(isMe?'me':'opp'))
       const spots=[[40,250],[300,120],[180,70],[60,120],[330,260],[200,200],[120,300],[300,300]]
-      const runner=spawn('quicksilver','<img src="'+IMG.avatarKnee[(getG().me&&isMe)?getG().me.avatar:'h2']+'" style="width:70px">',base.x,base.y,0)
+      const runner=spawn('quicksilver','<img src="'+(IMG.speedster||IMG.avatarKnee[isMe&&getG().me?getG().me.avatar:'h2'])+'" style="width:72px">',base.x,base.y,0)
       const f=spawn('float huge','⚡ FLASH ! ⚡',base.x,base.y-60,1900); f.style.color='#ffeb3b'
       for(let i=0;i<spots.length;i++){
         const [x,y]=spots[i]
-        spawn('ghost','<img src="'+IMG.avatarKnee[(getG().me&&isMe)?getG().me.avatar:'h2']+'" style="width:60px;opacity:.4">',runner.offsetLeft,runner.offsetTop,400)
+        spawn('ghost','<img src="'+(IMG.speedster||IMG.avatarKnee[isMe&&getG().me?getG().me.avatar:'h2'])+'" style="width:62px;opacity:.4">',runner.offsetLeft,runner.offsetTop,400)
         runner.style.left=x+'px'; runner.style.top=y+'px'
         SFX.whoosh&&SFX.whoosh()
         await sleep(150)

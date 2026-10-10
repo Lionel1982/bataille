@@ -1,7 +1,11 @@
 import { FAMILIES, FOODS } from '../data/cards.js'
 import * as E from '../game/engine.js'
 export default function Card({ card, side, style, disabled, selected, onClick }){
-  const cost = card.type==='food' ? '+'+(card.gain||1)+'🍖' : card.type==='soda' ? '+1⚡' : (side?E.costOf(side,{key:keyOf(card)}):card.cost)+'🍖'
+  // card porte _key (attache dans cards.js). costOf a besoin de {key}.
+  const spellCost = (side && card._key) ? E.costOf(side,{key:card._key}) : (card.cost||0)
+  const cost = card.type==='food' ? '+'+(card.gain||1)+'🍖'
+            : card.type==='soda' ? '+1⚡'
+            : spellCost+'🍖'
   const bonus = side && card.foodType && card.foodType===side.cr.f
   const badge = card.foodType ? {bg:FAMILIES[card.foodType].c,txt:FAMILIES[card.foodType].i}
     : card.food ? {bg:FAMILIES[FOODS[card.food].fam].c,txt:FOODS[card.food].art} : null
@@ -16,5 +20,3 @@ export default function Card({ card, side, style, disabled, selected, onClick })
     </div>
   )
 }
-// retrouve la cle d'une carte a partir de son objet (pour costOf) — fallback simple
-function keyOf(card){ return card._key || Object.keys(card).length?card.__key:undefined }

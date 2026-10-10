@@ -67,31 +67,31 @@ export const CARDS={
   asticot:{n:'Asticots',art:'🐛',type:'food',food:'asticot',pts:1,gain:2,txt:'+2 🍖 Asticots (Plumes).'},
   soda:{n:'Soda',art:'🥤',type:'soda',pts:3,txt:'+1 jauge. 3/3 = FLASH : tu rejoues !'},
   // --- Sorts communs ---
-  morsure:{n:'Morsure',art:'🦷',type:'spell',cost:2,pts:4,target:'pet',dmg:11,phys:1,anim:'slide',fx:'CHOMP !',col:'#ff5252',txt:'11 dégâts physiques.'},
-  pue:{n:'Pet qui pue',art:'💨',type:'spell',cost:3,pts:6,target:'pet',dmg:4,poison:3,anim:'gas',fx:'PROUT !',col:'#9be564',txt:'4 dégâts + poison (5/tour, 3 tours).'},
-  pique:{n:'Pique les yeux',art:'😵',type:'spell',cost:2,pts:5,target:'pote',eyes:2,anim:'gas',fx:'ÇA PIQUE !',col:'#ffa94d',txt:'Sorts adverses +1 coût pendant 2 tours.'},
-  bave:{n:'Jet de bave',art:'💦',type:'spell',cost:2,pts:4,target:'pet',slow:3,anim:'splash',fx:'SPLOTCH !',col:'#7fd8ff',txt:'0 dégât, vitesse adverse -1 pendant 3 tours.'},
-  sable:{n:'Jet de sable',art:'🏖️',type:'spell',cost:2,pts:4,target:'pet',blind:1,anim:'splash',fx:'AVEUGLÉ !',col:'#ffe082',txt:'Sa prochaine attaque a 60% de rater.'},
-  grimace:{n:'Grimace',art:'🤪',type:'spell',cost:2,pts:4,target:'pote',fear:2,anim:'taunt',fx:'BOUH !',col:'#ff8af5',txt:'Dégâts adverses /2 pendant 2 tours.'},
-  vabosser:{n:'Va bosser !',art:'💼',type:'spell',cost:3,pts:6,target:'pote',work:1,anim:'taunt',fx:'AU BOULOT !',col:'#90a4ae',txt:'L\'adversaire pioche 2 cartes de moins.'},
-  poche:{n:'Poche trouée',art:'🕳️',type:'spell',cost:2,pts:4,target:'pote',hole:1,anim:'taunt',fx:'OUPS !',col:'#b39ddb',txt:'Défausse 1 carte de la poche adverse.'},
-  calin:{n:'Gros câlin',art:'🤗',type:'spell',cost:3,pts:5,target:'self',heal:16,anim:'heal',fx:'CÂLIN !',col:'#ffb3d9',txt:'Soigne 16 PV.'},
+  morsure:{n:'Morsure',art:'🦷',type:'spell',cost:3,pts:4,target:'pet',dmg:11,phys:1,anim:'slide',fx:'CHOMP !',col:'#ff5252',txt:'11 dégâts physiques.'},
+  pue:{n:'Pet qui pue',art:'💨',type:'spell',cost:4,pts:6,target:'pet',dmg:4,poison:3,anim:'gas',fx:'PROUT !',col:'#9be564',txt:'4 dégâts + poison (5/tour, 3 tours).'},
+  pique:{n:'Pique les yeux',art:'😵',type:'spell',cost:3,pts:5,target:'pote',eyes:2,anim:'gas',fx:'ÇA PIQUE !',col:'#ffa94d',txt:'Sorts adverses +1 coût pendant 2 tours.'},
+  bave:{n:'Jet de bave',art:'💦',type:'spell',cost:3,pts:4,target:'pet',slow:3,anim:'splash',fx:'SPLOTCH !',col:'#7fd8ff',txt:'0 dégât, vitesse adverse -1 pendant 3 tours.'},
+  sable:{n:'Jet de sable',art:'🏖️',type:'spell',cost:3,pts:4,target:'pet',blind:1,anim:'splash',fx:'AVEUGLÉ !',col:'#ffe082',txt:'Sa prochaine attaque a 60% de rater.'},
+  grimace:{n:'Grimace',art:'🤪',type:'spell',cost:3,pts:4,target:'pote',fear:2,anim:'taunt',fx:'BOUH !',col:'#ff8af5',txt:'Dégâts adverses /2 pendant 2 tours.'},
+  vabosser:{n:'Va bosser !',art:'💼',type:'spell',cost:4,pts:6,target:'pote',work:1,anim:'taunt',fx:'AU BOULOT !',col:'#90a4ae',txt:'L\'adversaire pioche 2 cartes de moins.'},
+  poche:{n:'Poche trouée',art:'🕳️',type:'spell',cost:3,pts:4,target:'pote',hole:1,anim:'taunt',fx:'OUPS !',col:'#b39ddb',txt:'Défausse 1 carte de la poche adverse.'},
+  calin:{n:'Gros câlin',art:'🤗',type:'spell',cost:4,pts:5,target:'self',heal:16,anim:'heal',fx:'CÂLIN !',col:'#ffb3d9',txt:'Soigne 16 PV.'},
   // --- Sorts de famille (foodType) ---
-  griffe:{n:'Coup de griffe',art:'🐾',type:'spell',cost:3,pts:7,foodType:'poils',target:'pet',dmg:14,phys:1,anim:'slide',fx:'SCRATCH !',col:'#ff7043',txt:'14 dégâts. 🐾 Nourriture Poils : -1 coût, +50%.'},
-  venin:{n:'Crochets venimeux',art:'🐍',type:'spell',cost:3,pts:7,foodType:'ecailles',target:'pet',dmg:7,poison:4,anim:'slide',fx:'SSSSS !',col:'#66bb6a',txt:'7 dégâts + poison 4 tours. 🦎 Écailles : -1, +50%.'},
-  mue:{n:'Mue',art:'🧬',type:'spell',cost:3,pts:6,foodType:'ecailles',target:'self',heal:12,cleanse:1,anim:'heal',fx:'MUE !',col:'#aed581',txt:'Soigne 12 et retire les malus. 🦎 Écailles : -1, +50%.'},
-  tsunami:{n:'Vague scélérate',art:'🌊',type:'spell',cost:4,pts:8,foodType:'aqua',target:'pet',dmg:11,slow:2,anim:'slide',fx:'GLOUGLOU !',col:'#29b6f6',txt:'11 dégâts + ralentit. 💧 Aqua : -1, +50%.'},
-  bulle:{n:'Bulle protectrice',art:'🫧',type:'spell',cost:3,pts:6,foodType:'aqua',target:'self',shield:16,anim:'heal',fx:'BLOP !',col:'#80deea',txt:'Bouclier absorbant 16 dégâts. 💧 Aqua : -1, +50%.'},
-  fiente:{n:'Fiente en piqué',art:'💩',type:'spell',cost:3,pts:7,foodType:'plumes',target:'pet',dmg:10,blind:1,anim:'dive',fx:'SPLAF !',col:'#a1887f',txt:'10 dégâts + aveugle. 🪶 Plumes : -1, +50%.'},
-  envol:{n:'Envol',art:'🪶',type:'spell',cost:2,pts:5,foodType:'plumes',target:'self',haste:2,anim:'heal',fx:'ZOOOM !',col:'#ce93d8',txt:'+2 vitesse pendant 2 tours. 🪶 Plumes : -1, +50%.'},
+  griffe:{n:'Coup de griffe',art:'🐾',type:'spell',cost:4,pts:7,foodType:'poils',target:'pet',dmg:14,phys:1,anim:'slide',fx:'SCRATCH !',col:'#ff7043',txt:'14 dégâts. 🐾 Nourriture Poils : -1 coût, +50%.'},
+  venin:{n:'Crochets venimeux',art:'🐍',type:'spell',cost:5,pts:7,foodType:'ecailles',target:'pet',dmg:7,poison:4,anim:'slide',fx:'SSSSS !',col:'#66bb6a',txt:'7 dégâts + poison 4 tours. 🦎 Écailles : -1, +50%.'},
+  mue:{n:'Mue',art:'🧬',type:'spell',cost:4,pts:6,foodType:'ecailles',target:'self',heal:12,cleanse:1,anim:'heal',fx:'MUE !',col:'#aed581',txt:'Soigne 12 et retire les malus. 🦎 Écailles : -1, +50%.'},
+  tsunami:{n:'Vague scélérate',art:'🌊',type:'spell',cost:5,pts:8,foodType:'aqua',target:'pet',dmg:11,slow:2,anim:'slide',fx:'GLOUGLOU !',col:'#29b6f6',txt:'11 dégâts + ralentit. 💧 Aqua : -1, +50%.'},
+  bulle:{n:'Bulle protectrice',art:'🫧',type:'spell',cost:4,pts:6,foodType:'aqua',target:'self',shield:16,anim:'heal',fx:'BLOP !',col:'#80deea',txt:'Bouclier absorbant 16 dégâts. 💧 Aqua : -1, +50%.'},
+  fiente:{n:'Fiente en piqué',art:'💩',type:'spell',cost:5,pts:7,foodType:'plumes',target:'pet',dmg:10,blind:1,anim:'dive',fx:'SPLAF !',col:'#a1887f',txt:'10 dégâts + aveugle. 🪶 Plumes : -1, +50%.'},
+  envol:{n:'Envol',art:'🪶',type:'spell',cost:3,pts:5,foodType:'plumes',target:'self',haste:2,anim:'heal',fx:'ZOOOM !',col:'#ce93d8',txt:'+2 vitesse pendant 2 tours. 🪶 Plumes : -1, +50%.'},
   // --- Finishers (chers, à garder en poche) ---
-  charge:{n:'Charge écrasante',art:'💥',type:'spell',cost:6,pts:11,target:'pet',dmg:24,phys:1,big:1,anim:'slide',fx:'BAOUM !!',col:'#d50000',txt:'24 dégâts physiques. Les gros animaux font un carnage.'},
-  sumo:{n:'Plongeon sumo',art:'🏋️',type:'spell',cost:7,pts:13,target:'pet',dmg:22,phys:1,stun:1,big:1,anim:'slide',fx:'CRAAAC !!',col:'#6a1b9a',txt:'22 dégâts physiques + l\'adversaire saute son tour.'},
-  nuclear:{n:'Prout nucléaire',art:'☢️',type:'spell',cost:8,pts:15,target:'pet',dmg:20,poison:4,big:1,anim:'nuke',fx:'KA-BOUM !!!',col:'#76ff03',txt:'20 dégâts + poison 4 tours. Le quartier évacue.'},
-  apero:{n:'L\'apéro des potes',art:'🍻',type:'spell',cost:6,pts:12,target:'self',heal:34,draw:2,big:1,anim:'heal',fx:'SANTÉ !!',col:'#ffca28',txt:'Soigne 34 PV et pioche 2 cartes.'}
+  charge:{n:'Charge écrasante',art:'💥',type:'spell',cost:7,pts:11,target:'pet',dmg:24,phys:1,big:1,anim:'slide',fx:'BAOUM !!',col:'#d50000',txt:'24 dégâts physiques. Les gros animaux font un carnage.'},
+  sumo:{n:'Plongeon sumo',art:'🏋️',type:'spell',cost:8,pts:13,target:'pet',dmg:22,phys:1,stun:1,big:1,anim:'slide',fx:'CRAAAC !!',col:'#6a1b9a',txt:'22 dégâts physiques + l\'adversaire saute son tour.'},
+  nuclear:{n:'Prout nucléaire',art:'☢️',type:'spell',cost:9,pts:15,target:'pet',dmg:20,poison:4,big:1,anim:'nuke',fx:'KA-BOUM !!!',col:'#76ff03',txt:'20 dégâts + poison 4 tours. Le quartier évacue.'},
+  apero:{n:'L\'apéro des potes',art:'🍻',type:'spell',cost:7,pts:12,target:'self',heal:34,draw:2,big:1,anim:'heal',fx:'SANTÉ !!',col:'#ffca28',txt:'Soigne 34 PV et pioche 2 cartes.'}
 };
 // Deck conseillé (bouton) — adapté à la famille de l'animal choisi
-export function suggestedDeck(fam){
+export function suggestedDeck(fam, maxPts){
   const base={soda:3,morsure:4,pue:2,bave:2,sable:1,grimace:2,calin:2,pique:1,vabosser:1,charge:1,sumo:1};
   const perFam={
     poils:{croq:5,os:2,griffe:3},
@@ -99,10 +99,25 @@ export function suggestedDeck(fam){
     aqua:{vers:5,algue:2,tsunami:2,bulle:1},
     plumes:{graine:5,asticot:2,fiente:2,envol:1}
   };
+  const FREE={poils:'croq',ecailles:'grillon',aqua:'vers',plumes:'graine'}[fam];
   const d=Object.assign({},base,perFam[fam]);
-  let n=Object.values(d).reduce((a,b)=>a+b,0);
-  while(n<DECK_SIZE){d.croq=(d.croq||0)+1;n++;}       // compléter
-  while(n>DECK_SIZE){d.soda--;n--;}
+  const count=()=>Object.values(d).reduce((a,b)=>a+b,0);
+  const pts=()=>Object.entries(d).reduce((a,[k,v])=>a+v*CARDS[k].pts,0);
+  // 1) atteindre exactement 30 cartes avec la nourriture gratuite de la famille (0 pt)
+  let n=count();
+  while(n<DECK_SIZE){ d[FREE]=(d[FREE]||0)+1; n++; }
+  while(n>DECK_SIZE){ d.soda--; n--; }
+  // 2) si un budget de cartes est donné, remplacer les cartes chères par de la nourriture gratuite
+  if(maxPts!=null){
+    const removable=['sumo','charge','vabosser','pique','mue','bulle','envol','grimace','sable','calin'];
+    let guard=0;
+    while(pts()>maxPts && guard++<200){
+      const k=removable.find(x=>d[x]>0) || Object.keys(d).find(x=>CARDS[x].pts>0 && d[x]>0);
+      if(!k) break;
+      d[k]--; if(!d[k]) delete d[k];
+      d[FREE]=(d[FREE]||0)+1;   // on garde 30 cartes
+    }
+  }
   return d;
 }
 

@@ -6,7 +6,7 @@ import { supabase, online } from '../lib/supabase.js'
 const LS='bdp_build_v5'
 const load=()=>{ try{return JSON.parse(localStorage.getItem(LS))||null}catch{return null} }
 
-export default function Build({ auth, onFight }){
+export default function Build({ auth, onFight, onOnline }){
   const [b,setB] = useState(()=> load() || { avatar:'h1', pet:'chien', top:'tshirt', bottom:'jean', deck:{} })
   useEffect(()=>{ localStorage.setItem(LS, JSON.stringify(b)) },[b])
 
@@ -18,7 +18,7 @@ export default function Build({ auth, onFight }){
   const ok = spent<=BUDGET && deckCount===DECK_SIZE && food>=8
 
   const set=(patch)=> setB(prev=>({...prev,...patch}))
-  const add=(k)=> setB(prev=> deckCount<DECK_SIZE ? ({...prev,deck:{...prev.deck,[k]:(prev.deck[k]||0)+1}}) : prev)
+  const add=(k)=> setB(prev=>{ const n=Object.values(prev.deck).reduce((a,c)=>a+c,0); return n<DECK_SIZE ? ({...prev,deck:{...prev.deck,[k]:(prev.deck[k]||0)+1}}) : prev })
   const sub=(k)=> setB(prev=>{ const d={...prev.deck}; if(d[k]>0){d[k]--; if(!d[k])delete d[k]} return {...prev,deck:d} })
 
   async function fight(){
@@ -70,7 +70,7 @@ export default function Build({ auth, onFight }){
         <div className="opts">{Object.entries(BOTTOMS).map(([k,o])=>(<div key={k} className={'opt'+(b.bottom===k?' sel':'')} onClick={()=>set({bottom:k})}><div className="e">{o.i}</div><b>{o.n}·{o.pts}💰</b>{o.d}</div>))}</div>
         <h2>4. Ton deck <span style={{fontSize:12,fontWeight:400}}>(30 cartes, min. 8 🍖)</span></h2>
         <div className="deckbtns">
-          <button id="suggestBtn" onClick={()=>set({deck:suggestedDeck(fam)})}>✨ Deck conseillé</button>
+          <button id="suggestBtn" onClick={()=>set({deck:suggestedDeck(fam, BUDGET - CREATURES[b.pet].pts - TOPS[b.top].pts - BOTTOMS[b.bottom].pts)})}>✨ Deck conseillé</button>
           <button id="clearBtn" onClick={()=>set({deck:{}})}>🗑️ Vider</button>
         </div>
         <div id="deck">
@@ -91,6 +91,10 @@ export default function Build({ auth, onFight }){
       <div className="bfoot">
         <button className="big" disabled={!ok} onClick={fight}>
           {ok?'⚔️ COMBATTRE !':(deckCount>DECK_SIZE?`Trop de cartes (${deckCount}/${DECK_SIZE})`:deckCount<DECK_SIZE?`Deck : ${deckCount}/${DECK_SIZE}`:food<8?`Pas assez de nourriture (${food}/8)`:'Budget depasse !')}
+        </button>
+        <button className="testbtn" onClick={fight}>🧪 TESTER (lancer meme si deck incomplet)</button>
+        <button className="onlinebtn" disabled={!ok || !(auth.online && auth.session)} onClick={()=>onOnline && onOnline({ ...b, name: auth.profile?.pseudo || 'Toi' })}>
+          {(auth.online && auth.session) ? '🌐 JOUER EN LIGNE (vs un pote)' : '🌐 En ligne (connecte-toi)'}
         </button>
       </div>
     </div>

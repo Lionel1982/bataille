@@ -26,6 +26,9 @@ export const SFX=(()=>{let ctx=null,on=true;
     objection:()=>{tone(220,220,.08,'square',.12);tone(330,330,.18,'square',.12,.08);},
     poison:()=>{tone(300,150,.25,'sine',.12);},
     whoosh:()=>{noise(.18,.22,2200,0,2.5);tone(1200,300,.15,'sine',.05);},
+    bark:()=>{tone(500,180,.12,'sawtooth',.28);tone(420,150,.14,'sawtooth',.22,.14);},
+    cat:()=>{tone(700,1500,.18,'sawtooth',.14);noise(.2,.12,3500,0,6);tone(1400,500,.2,'sine',.1,.12);},
+    squirt:()=>{noise(.28,.3,1800,0,.8);tone(400,1600,.22,'sine',.08);},
     win:()=>{[523,659,784,1046,1318].forEach((f,i)=>tone(f,f,.25,'square',.1,i*.12));},
     lose:()=>{[392,330,262,196].forEach((f,i)=>tone(f,f*.97,.35,'triangle',.15,i*.2));},
     turn:()=>{tone(660,660,.07,'square',.08);tone(880,880,.1,'square',.08,.08);}

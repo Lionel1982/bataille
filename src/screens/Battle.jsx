@@ -11,8 +11,12 @@ import Fx from '../components/Fx.jsx'
 
 const sleep=ms=>new Promise(r=>setTimeout(r,ms))
 const CARD=E.CARD
+// --- DEBUG : logs detailles (visible dans la console du navigateur F12) ---
+const DBG=true
+const LOG=(...a)=>{ if(DBG) console.log('%c[BDP]','color:#ff3fb4;font-weight:bold',...a) }
+const SNAP=(s)=> s?({hp:s.hp+'/'+s.max,deck:s.deck.length,hand:s.hand.length,disc:s.discard.length,food:s.food+'/'+s.foodMax,fx:{...s.fx}}):null
 
-export default function Battle({ auth, loadout, onExit }){
+export default function Battle({ auth, loadout, onExit, netMatch=null }){
   const [,force] = useReducer(x=>x+1,0)
   const g = useRef(null)
   const fx = useRef(null)          // controleur d'effets visuels (Fx)
@@ -25,13 +29,24 @@ export default function Battle({ auth, loadout, onExit }){
   useEffect(()=>{ newGame(); /* eslint-disable-next-line */ },[])
 
   function newGame(){
+    LOG('newGame() loadout=', loadout, 'netMatch=', netMatch)
+    if(netMatch) LOG('🌐 PARTIE EN LIGNE connectee : match',netMatch.match.id,'role',netMatch.role)
     const seed = (Date.now() ^ (Math.random()*1e9)) >>> 0
     const rng = E.makeRng(seed)
     const petKeys = Object.keys(CREATURES)
     const oppPet = petKeys[Math.floor(rng()*petKeys.length)]
-    const me = E.makeSide({ ...loadout, cards:loadout.deck }, true, rng)
+    // Deck de secours : si le deck du joueur est vide ou trop petit (bouton TEST), on le complete
+    let myCards = (loadout && loadout.deck) ? {...loadout.deck} : {}
+    const total = Object.values(myCards).reduce((a,b)=>a+b,0)
+    if(total < 10){
+      const fallback = suggestedDeck(CREATURES[loadout.pet].f)
+      LOG('Deck joueur trop petit ('+total+' cartes) -> deck conseille applique', fallback)
+      myCards = fallback
+    }
+    const me = E.makeSide({ ...loadout, cards:myCards }, true, rng)
     const oppCfg = { pet:oppPet, avatar:'h2', top:'chemisette', bottom:'jean', cards: oppDeck(oppPet), name:'Alex' }
     const opp = E.makeSide(oppCfg, false, rng)
+    LOG('Joueur:', me.cr.n, 'deck='+me.deck.length, '| Adversaire:', opp.cr.n, 'deck='+opp.deck.length)
     g.current = { rng, me, opp, turn:1, active:null, busy:true, sel:null, over:false }
     force()
     startTurn(me)
@@ -46,14 +61,17 @@ export default function Battle({ auth, loadout, onExit }){
 
   async function startTurn(s){
     const G=g.current; G.active=s; G.sel=null; G.busy=true; force()
+    LOG('startTurn', s.name, 'tour', G.turn, SNAP(s))
     const ev=E.startTurnEffects(s)
     for(const e of ev){
       if(e.type==='poison'){ fx.current?.hit(s.isMe?'me':'opp'); fx.current?.float(s.isMe?'me':'opp','-'+e.dmg+' ☠️','#9be564'); say(`${s.name} subit le poison (-${e.dmg}).`); force(); await sleep(d(600)); if(await checkEnd())return }
       if(e.type==='stun'){ await fx.current?.banner(s.isMe?'😵 TU ES SONNE !':'😵 ALEX EST SONNE !'); return endTurn(true) }
     }
     const n=HAND_DRAW-(s.fx.work?2:0); s.fx.work=0; E.drawCards(s,n)
+    LOG('  pioche', n, 'cartes ->', s.name, 'main='+s.hand.length, 'deck restant='+s.deck.length)
+    if(s.hand.length===0) LOG('  ⚠️ MAIN VIDE apres pioche ! deck='+s.deck.length+' discard='+s.discard.length)
     await fx.current?.banner(s.extra?'⚡ ENCORE UN TOUR !':(s.isMe?'A TOI !':'TOUR D ALEX')); s.extra=false
-    if(s.isMe){ say(`Tour ${G.turn} : ${n} cartes. 1 nourriture max, garde tes grosses cartes en poche 👖`); G.busy=false; force() }
+    if(s.isMe){ say((netMatch?`🌐 Partie en ligne (${netMatch.role==='host'?'hote':'invite'}) · `:'')+`Tour ${G.turn} : ${n} cartes. 1 nourriture max, garde tes grosses cartes en poche 👖`); G.busy=false; force() }
     else { force(); await aiPlay() }
   }
   const d=ms=> ms*(fastRef.current?0.55:1)
@@ -62,6 +80,7 @@ export default function Battle({ auth, loadout, onExit }){
 
   async function endTurn(skipDiscard){
     const G=g.current, s=G.active; if(G.over)return
+    LOG('endTurn', s.name, 'defausse', s.hand.length, 'cartes')
     G.busy=true; G.sel=null; force()
     if(s.isMe && !skipDiscard){ s.discard.push(...s.hand); s.hand=[] } else if(!s.isMe){ s.discard.push(...s.hand); s.hand=[] }
     E.endTurnEffects(s); force()
@@ -73,6 +92,7 @@ export default function Battle({ auth, loadout, onExit }){
 
   async function playCard(s, c, from){
     const G=g.current; G.busy=true; G.sel=null; fx.current?.sfx('card')
+    LOG('playCard', s.name, CARD(c).n, 'from='+from, 'cout='+(E.costOf(s,c)))
     const list = from==='hand'? s.hand : s[from]; list.splice(list.indexOf(c),1); force()
     if(!s.isMe) await fx.current?.reveal(c)
     const card=CARD(c), t = s===G.me?G.opp:G.me
@@ -112,6 +132,7 @@ export default function Battle({ auth, loadout, onExit }){
 
   async function checkEnd(){
     const G=g.current; if(G.me.hp>0 && G.opp.hp>0) return false
+    LOG('checkEnd : fin de partie, me.hp='+G.me.hp+' opp.hp='+G.opp.hp)
     G.over=true; G.busy=true; const win=G.opp.hp<=0; force()
     fx.current?.ko(win?'opp':'me'); fx.current?.sfx(win?'win':'lose')
     await fx.current?.bigWord(win?'K.O. !':'AIE…', win?'#ffd633':'#7e57c2', win)
@@ -125,7 +146,7 @@ export default function Battle({ auth, loadout, onExit }){
   }
 
   async function aiPlay(){
-    const G=g.current; await sleep(d(300))
+    const G=g.current; await sleep(d(300)); LOG('aiPlay debut', SNAP(G.opp))
     const food=aiChooseAction(G.opp)
     if(food && food.isFood){ await playCard(G.opp, food.card, 'hand'); if(G.over)return }
     for(let i=0;i<8;i++){ const a=aiChooseAction(G.opp); if(!a||a.isFood)break; await playCard(G.opp,a.card,a.zone); if(G.over)return }
@@ -145,47 +166,44 @@ export default function Battle({ auth, loadout, onExit }){
       <div className="scene" id="scene">
         <div className="sky"/><div className="house h1"/><div className="house h2"/><div className="house h3"/><div className="road"/>
 
-        {/* --- BARRE DE VIE ADVERSE : tout en haut --- */}
-        <div className="hpbox" style={{left:8,top:6}}>
+        {/* ===== LIGNE ADVERSAIRE (haut) : barre a gauche · animal au centre · perso a droite ===== */}
+        <div className="hpbox" style={{left:6,top:6,width:168}}>
           <div className="top"><span>{opp.name} & {opp.cr.n.toUpperCase()} {FAMILIES[opp.cr.f].i}</span><span>{opp.hp}/{opp.max}</span></div>
           <div className="hpbar"><div className="hpfill" style={{width:(opp.hp/opp.max*100)+'%',background:hpCol(opp)}}/></div>
           <div className="accwrap"><div className="acclabel"><span>🎯 Precision</span><span>{Math.round(E.accuracy(opp)*100)}%</span></div>
-            <div className="accbar"><div className="cursor" style={{left:`calc(${accCursor(opp)}% - 3px)`}}/></div></div>
+            <div className="accbar"><div className="fill" style={{width:accCursor(opp)+'%'}}/></div></div>
           <div className="st">⚡{spd(opp)} 🍖{opp.food}/{opp.foodMax} 👖{opp.back.length} {statusTxt(opp)}</div>
         </div>
-
-        {/* animal adverse remonte ; pote adverse en haut a droite */}
-        <Sprite side={opp} id="oppPet" style={{left:150,top:92,width:120,height:110}} scale={0.8}/>
-        <div className="ent" id="oppPote" style={{left:300,top:12,width:84,height:132}}>
-          <img className="spr" src={IMG.oppPote} style={{width:84}} alt=""/>
-          {opp.front.length>0 && (
-            <img className="oppfrontcard" src={IMG.anim[opp.key]?undefined:undefined} alt="" style={{display:'none'}}/>
-          )}
-          {opp.front.length>0 && <div className="oppfrontcard" style={{right:-6,top:40,fontSize:22}} onClick={()=>setZoomCard(opp.front[0])}>🂠</div>}
+        {/* perso adverse en haut a droite */}
+        <div className="ent" id="oppPote" style={{right:4,top:4,left:'auto',width:90,height:140}}>
+          <img className="spr" src={IMG.oppPote} style={{width:88}} alt=""/>
+          {opp.front.length>0 && <div className="oppfrontcard" style={{left:-4,top:44,fontSize:22}} onClick={()=>setZoomCard(opp.front[0])}>🂠</div>}
         </div>
+        {/* animal adverse : vers le centre (un peu a gauche du milieu), regarde a droite... vers le bas */}
+        <Sprite side={opp} id="oppPet" style={{right:70,top:40,left:'auto',width:120,height:120}} scale={0.8} flip/>
 
-        {/* ton animal + ton avatar vu aux genoux, en bas */}
-        <Sprite side={me} id="myPet" style={{left:4,top:170,width:150,height:150,zIndex:7}} scale={1.08} flip/>
-        <div className="ent" id="myPote" style={{left:150,top:206,width:220,height:170,zIndex:6,overflow:'hidden'}}>
-          <img className="spr avatarknee" src={IMG.avatarKnee[me.avatar]} alt=""/>
+        {/* ===== LIGNE JOUEUR (bas) : perso a gauche · animal au centre · barre a droite ===== */}
+        {/* ton perso en bas a gauche, vue aux genoux */}
+        <div className="ent" id="myPote" style={{left:2,top:150,width:150,height:200,zIndex:6,overflow:'visible',alignItems:'flex-end'}}>
+          <img className="spr avatarknee" src={IMG.avatarKnee[me.avatar]} alt="" style={{maxHeight:'none'}}/>
         </div>
+        {/* ton animal : a droite de ton perso, vers le centre, face a l'animal adverse */}
+        <Sprite side={me} id="myPet" style={{left:150,top:150,width:150,height:160,zIndex:7}} scale={1.1}/>
 
-        {/* --- RESSOURCES : en bas (suivant ta fleche) --- */}
-        <div className="res" style={{top:'auto',bottom:8,left:8}}>
+        {/* ressources : en bas a gauche, sous ton perso */}
+        <div className="res" style={{top:'auto',bottom:6,left:6}}>
           <div className="tok" id="tokFood">🍖</div><div className="num">{me.food}<small>/{me.foodMax}</small></div>
           <div className="tok" style={{borderColor:'#ff73c8'}}>🥤</div>
           <div className="pips">{Array.from({length:SODA_MAX},(_,i)=><i key={i} className={i<me.soda?'on':''}/>)}</div>
         </div>
-
-        {/* ta barre de vie + precision, au-dessus de ta main */}
-        <div className="hpbox" style={{right:8,top:6,left:'auto'}}>
+        {/* ta barre de vie + precision : en bas a DROITE */}
+        <div className="hpbox" style={{right:6,bottom:6,top:'auto',left:'auto',width:168}}>
           <div className="top"><span>{me.name} & {me.cr.n.toUpperCase()} {FAMILIES[me.cr.f].i}</span><span>{me.hp}/{me.max}</span></div>
           <div className="hpbar"><div className="hpfill" style={{width:(me.hp/me.max*100)+'%',background:hpCol(me)}}/></div>
           <div className="accwrap"><div className="acclabel"><span>🎯 Precision</span><span>{Math.round(E.accuracy(me)*100)}%</span></div>
-            <div className="accbar"><div className="cursor" style={{left:`calc(${accCursor(me)}% - 3px)`}}/></div></div>
+            <div className="accbar"><div className="fill" style={{width:accCursor(me)+'%'}}/></div></div>
           <div className="st">⚡{spd(me)} {statusTxt(me)}</div>
         </div>
-
         <Fx ref={fx} getG={()=>g.current} dMul={()=>fastRef.current?0.55:1} pausedRef={pausedRef}/>
       </div>
 
@@ -209,7 +227,7 @@ export default function Battle({ auth, loadout, onExit }){
           <button className="tg" onClick={()=>{fx.current?.toggleSound(); force()}}>🔊</button>
           <button className="tg" onClick={()=>setFast(f=>!f)}>{fast?'⏩ RAPIDE':'▶ RAPIDE'}</button>
           <button className="tg" onClick={()=>setPaused(p=>!p)}>{paused?'⏸ PAUSE':'▶ PAUSE'}</button>
-          <button className="tg" onClick={onExit}>🚪</button>
+          <button className="tg" onClick={()=>{ LOG('retour -> ecran deck'); onExit() }}>◀ RETOUR</button>
         </div>
       </div>
 

@@ -3,6 +3,7 @@
 //  Toute la logique de regles vit ici. React ne fait QUE l'affichage.
 // ============================================================
 import { CREATURES, TOPS, BOTTOMS, CARDS, FOODS, SODA_MAX, FOOD_CAP, HAND_DRAW, DECK_SIZE } from '../data/cards.js'
+const ELOG=(...a)=>console.log('%c[ENGINE]','color:#0288d1',...a)
 
 // --- RNG deterministe (mulberry32) : meme seed => meme partie (utile pour le multi) ---
 export function makeRng(seed){
@@ -28,10 +29,13 @@ export const costOf = (s,c) => { const d=C(c); return Math.max(1,(d.cost||0)+(s.
 
 // precision 0..1 : 1 = parfaite, baisse si aveugle/ralenti. Sert a la barre de precision.
 export function accuracy(s){
-  let a = 1
-  if(s.fx.blind) a -= 0.6
-  if(s.fx.slow)  a -= 0.15
-  return Math.max(0.1, a)
+  // Precision de BASE = 0.5 (la barre demarre a la moitie).
+  // Les malus la font descendre ; les boosts (fx.aim) la font monter jusqu'a 1.
+  let a = 0.5
+  if(s.fx.aim)   a += 0.25 * s.fx.aim   // futur boost de precision
+  if(s.fx.blind) a -= 0.35
+  if(s.fx.slow)  a -= 0.12
+  return Math.max(0.05, Math.min(1, a))
 }
 export function dodgeChance(atk, def){
   if(hasTrait(atk,'enorme')) return 0
@@ -44,6 +48,7 @@ let _uid = 0
 export function buildDeckArray(cardsMap, rng){
   const deck=[]
   for(const k in cardsMap) for(let i=0;i<cardsMap[k];i++) deck.push({ id:++_uid, key:k })
+  ELOG('buildDeckArray :', deck.length, 'cartes depuis', cardsMap)
   return shuffle(deck, rng)
 }
 export function makeSide(cfg, isMe, rng){
@@ -54,16 +59,20 @@ export function makeSide(cfg, isMe, rng){
     cr, hp, max:hp, deck:buildDeckArray(cfg.cards||cfg.deck||{}, rng),
     hand:[], discard:[], back:[], front:[], backMax:bot.back, frontMax:top.front,
     food:0, foodMax:0, soda:0, foodPlayed:false, extra:false, shield:0,
-    fx:{ poison:0, eyes:0, slow:0, blind:0, fear:0, work:0, haste:0, stun:0 }
+    fx:{ poison:0, eyes:0, slow:0, blind:0, fear:0, work:0, haste:0, stun:0, aim:0 }
   }
 }
 export function drawCards(s, n){
-  const log=[]
   for(let i=0;i<n;i++){
-    if(!s.deck.length){ if(!s.discard.length) break; s.deck = s.discard; s.discard=[] }
+    if(!s.deck.length){
+      if(!s.discard.length){ ELOG('drawCards : plus de cartes (deck+discard vides) pour', s.name); break }
+      ELOG('drawCards : recyclage defausse ('+s.discard.length+') dans le deck')
+      s.deck = shuffle(s.discard, makeRng((Date.now()^(i*2654435761))>>>0)); s.discard=[]
+    }
     s.hand.push(s.deck.pop())
   }
-  return log
+  ELOG('drawCards :', s.name, 'main='+s.hand.length, 'deck restant='+s.deck.length)
+  return []
 }
 export const canPlayFood = s => !s.foodPlayed && s.foodMax < FOOD_CAP
 export function whyNot(s,c){
