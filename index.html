@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bataille de Po/ets</title><link rel="stylesheet" href="style.css"></head>
+<body><div class="phone" id="phone">
+
+<div class="screen on" id="build">
+  <div class="bhead"><h1>BATAILLE DE PO/ETS</h1><div class="bud" id="bud"></div></div>
+  <div class="bbody">
+    <h2>1. Ton animal</h2><div class="grid" id="pets"></div>
+    <h2>2. Tes fringues</h2><div class="opts" id="tops"></div><div class="opts" id="bottoms"></div>
+    <h2>3. Ton deck (30 cartes)</h2><div id="deck"></div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px"><button id="soundBtn" class="tg">🔊 SON : ON</button><button id="fastBtn" class="tg">▶ RAPIDE : OFF</button><button id="pauseBtn" class="tg" >▶ PAUSE : OFF</button></div>
+    <div style="font-size:10px;opacity:.6;margin-top:3px">Pause ON = le jeu attend ton clic après chaque carte jouée.</div>
+  </div>
+  <div class="bfoot"><button class="big" id="goBtn">⚔️ COMBATTRE !</button></div>
+</div>
+
+<div class="screen" id="fight">
+  <div class="scene" id="scene"><div class="sky"></div><div class="house h1"></div><div class="house h2"></div><div class="house h3"></div><div class="road"></div>
+    <div class="plat" style="left:178px;top:134px;width:204px;height:48px"></div>
+    <div class="plat" style="left:-34px;top:262px;width:320px;height:100px"></div>
+    <div class="ent" id="oppPet" style="left:170px;top:60px;width:120px;height:110px"></div>
+    <div class="ent" id="oppPote" style="left:285px;top:18px;width:90px;height:150px"></div>
+    <div class="ent me" id="myPet" style="left:0px;top:150px;width:160px;height:160px;z-index:7"></div>
+    <div class="ent" id="myPote" style="left:150px;top:150px;width:160px;height:220px;z-index:6"></div>
+    <div class="res"><div class="tok" id="tokFood">🍖</div><div class="num" id="foodTxt">0</div><div class="tok" style="border-color:#ff73c8">🥤</div><div class="pips" id="sodaPips"></div></div>
+    <div class="hpbox" style="left:8px;top:58px"><div class="top"><span id="oppName"></span><span id="oppHpTxt"></span></div><div class="hpbar"><div class="hpfill" id="oppHp"></div></div><div class="st" id="oppSt"></div></div>
+    <div class="hpbox" style="right:8px;bottom:8px"><div class="top"><span id="myName"></span><span id="myHpTxt"></span></div><div class="hpbar"><div class="hpfill" id="myHp"></div></div><div class="st" id="mySt"></div></div>
+  </div>
+  <div class="mid">
+    <div class="dialog"><span class="turn" id="turnTag"></span><span id="msg"></span><button id="cont">SUITE ▶</button></div>
+    <div class="row">
+      <div class="stack"><div class="pile" id="deckN"></div>Pioche</div>
+      <div class="stack"><div class="slots" id="pocketSlots"></div>👖 Poches</div>
+      <div class="stack"><div class="pile disc" id="discN"></div>Défausse</div>
+      <button id="endBtn">FIN DU<br>TOUR ▶</button>
+    </div>
+  </div>
+  <div class="handzone"><div class="actbar" id="actbar"></div><div id="hand"></div></div>
+</div>
+
+</div>
+<script src="assets.js"></script><script src="data.js"></script><script src="sfx.js"></script><script src="build.js"></script><script src="fx.js"></script><script src="game.js"></script><script src="ui.js"></script>
+</body></html>
