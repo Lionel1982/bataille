@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, online } from '../lib/supabase.js'
 import { IMG } from '../assets/images.js'
-export default function Leaderboard(){
+export default function Leaderboard({ onBack, onLogin }){
   const [rows,setRows] = useState(null)
   useEffect(()=>{
     if(!online){ setRows([]); return }
@@ -9,9 +9,12 @@ export default function Leaderboard(){
   },[])
   return (
     <div className="lead">
-      <h2>🏆 CLASSEMENT</h2>
+      <div className="backbar"><button onClick={onBack}>◀ Retour</button><span className="sp"/><b style={{color:'#fff'}}>🏆 Classement</b></div>
       <div className="list">
-        {!online && <p style={{padding:12}}>Hors-ligne : connecte-toi pour voir le classement en ligne.</p>}
+        {!online && <div style={{padding:16,textAlign:'center'}}>
+          <p>Le classement en ligne demande un compte.</p>
+          <button className="big" style={{maxWidth:240,marginTop:10}} onClick={onLogin}>👤 Se connecter</button>
+        </div>}
         {online && rows && rows.length===0 && <p style={{padding:12}}>Personne encore. Sois le premier !</p>}
         {rows && rows.map((r,i)=>(
           <div className="rowL" key={i}>
