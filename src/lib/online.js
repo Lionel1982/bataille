@@ -79,3 +79,28 @@ export async function fetchMatch(matchId){
   const { data } = await supabase.from('matches').select('*').eq('id',matchId).single()
   return data
 }
+
+
+// ===== SYNCHRO ACTION-PAR-ACTION (broadcast temps reel) =====
+// On utilise le "broadcast" du canal Realtime : pas besoin de table dediee.
+// Chaque joueur envoie ses actions ; l'autre les rejoue sur SON adversaire (opp).
+
+let _chan = null
+export function openMatchChannel(matchId, { onAction, onPresence, onJoinReady } = {}){
+  if(!online) return ()=>{}
+  const ch = supabase.channel('live:'+matchId, { config:{ broadcast:{ self:false }, presence:{ key: Math.random().toString(36).slice(2) } } })
+  ch.on('broadcast', { event:'action' }, ({payload})=>{ LOG('recv action', payload?.kind); onAction && onAction(payload) })
+  ch.on('presence', { event:'sync' }, ()=>{ const st=ch.presenceState(); const n=Object.keys(st).length; LOG('presence', n); onPresence && onPresence(n) })
+  ch.subscribe(async (status)=>{ LOG('live channel', status); if(status==='SUBSCRIBED'){ await ch.track({ at: Date.now() }); onJoinReady && onJoinReady() } })
+  _chan = ch
+  return ()=>{ try{ supabase.removeChannel(ch) }catch(e){}; if(_chan===ch) _chan=null }
+}
+export function sendAction(payload){
+  if(!_chan) { LOG('sendAction sans canal'); return }
+  _chan.send({ type:'broadcast', event:'action', payload })
+}
+// Tirage au sort du premier joueur, deterministe a partir de l'id de match (meme resultat des 2 cotes).
+export function firstPlayerIsHost(matchId){
+  let h=0; for(const c of String(matchId)) h=(h*31 + c.charCodeAt(0))>>>0
+  return (h % 2)===0
+}

@@ -62,7 +62,7 @@ const Fx = forwardRef(function Fx({ getG, dMul, pausedRef }, ref){
       const art = actionArt(card._key)
       if(art && card.target!=='self'){
         const ax = a.x + dx*0.62, ay = a.y + dy*0.62
-        const mir = (dx>=0) ? 1 : -1   // l'image de base regarde a DROITE : miroir seulement si l'attaque va vers la gauche
+        const mir = (dx>=0) ? -1 : 1   // l'image de base (gueule de loup) regarde a GAUCHE : miroir quand l'attaque va vers la DROITE
         const el = spawn('actionart','<img src="'+art+'" style="transform:scaleX('+mir+')">', ax, ay, 0)
         el.style.left=ax+'px'; el.style.top=ay+'px'; el.style.transform='translate(-50%,-50%)'
         setTimeout(()=>{el.classList.add('out'); setTimeout(()=>el.remove(),300)}, 650)

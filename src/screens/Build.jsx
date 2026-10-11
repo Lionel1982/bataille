@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
-import { CREATURES, TOPS, BOTTOMS, AVATARS, CARDS, FAMILIES, FOODS, TRAITS, BUDGET, DECK_SIZE, suggestedDeck } from '../data/cards.js'
+import { CREATURES, TOPS, BOTTOMS, AVATARS, CARDS, FAMILIES, FOODS, TRAITS, BUDGET, DECK_SIZE, suggestedDeck, ownedSet, BASE_COLLECTION } from '../data/cards.js'
+import { loadWallet } from '../lib/economy.js'
 import { IMG } from '../assets/images.js'
+import * as E from '../game/engine.js'
 import { supabase, online } from '../lib/supabase.js'
 
 const LS='bdp_build_v5'
@@ -9,6 +11,9 @@ const load=()=>{ try{return JSON.parse(localStorage.getItem(LS))||null}catch{ret
 export default function Build({ auth, onFight, onOnline }){
   const [b,setB] = useState(()=> load() || { avatar:'h1', pet:'chien', top:'tshirt', bottom:'jean', deck:{} })
   useEffect(()=>{ localStorage.setItem(LS, JSON.stringify(b)) },[b])
+  const [filter,setFilter]=useState('tous')  // tous|familier|joueur|nourriture
+  const [owned,setOwned]=useState(()=>ownedSet([]))   // cartes debloquees (base + achats)
+  useEffect(()=>{ (async()=>{ const w=await loadWallet(); setOwned(ownedSet(w?w.collection:[])) })() },[])
 
   const deckCount = Object.values(b.deck).reduce((a,c)=>a+c,0)
   const deckPts = Object.entries(b.deck).reduce((a,[k,v])=>a+v*CARDS[k].pts,0)
@@ -73,8 +78,13 @@ export default function Build({ auth, onFight, onOnline }){
           <button id="suggestBtn" onClick={()=>set({deck:suggestedDeck(fam, BUDGET - CREATURES[b.pet].pts - TOPS[b.top].pts - BOTTOMS[b.bottom].pts)})}>✨ Deck conseillé</button>
           <button id="clearBtn" onClick={()=>set({deck:{}})}>🗑️ Vider</button>
         </div>
+        <div className="catfilter">
+          {[['tous','Tout'],['familier','🐾 Familier'],['joueur','🧑 Joueur'],['nourriture','🍖 Nourriture']].map(([k,lbl])=>(
+            <button key={k} className={filter===k?'on':''} onClick={()=>setFilter(k)}>{lbl}</button>
+          ))}
+        </div>
         <div id="deck">
-          {sortedCards.map(([k,c])=>{
+          {sortedCards.filter(([k,c])=> owned.has(k) && (filter==='tous' || E.cardCategory(c)===filter)).map(([k,c])=>{
             const favFood=c.food&&FOODS[c.food].fam===fam, favSpell=c.foodType===fam
             return (
               <div key={k} className={'drow'+(favFood||favSpell?' fav':'')+(c.big?' bigc':'')}>

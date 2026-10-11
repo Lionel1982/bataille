@@ -5,6 +5,8 @@ import { aiChooseAction, aiPocketChoices } from '../game/ai.js'
 import { actionArt } from '../game/actionArt.js'
 import { IMG } from '../assets/images.js'
 import { supabase, online } from '../lib/supabase.js'
+import { openMatchChannel, sendAction, firstPlayerIsHost } from '../lib/online.js'
+import { awardPoints } from '../lib/economy.js'
 import Sprite from '../components/Sprite.jsx'
 import Card from '../components/Card.jsx'
 import Fx from '../components/Fx.jsx'
@@ -25,29 +27,49 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
   const [fast,setFast] = useState(false)
   const pausedRef=useRef(false), fastRef=useRef(false)
   pausedRef.current=paused; fastRef.current=fast
+  const closeChan = useRef(null)
+  useEffect(()=>()=>{ if(closeChan.current) closeChan.current() },[])
 
   useEffect(()=>{ newGame(); /* eslint-disable-next-line */ },[])
 
   function newGame(){
     LOG('newGame() loadout=', loadout, 'netMatch=', netMatch)
-    if(netMatch) LOG('🌐 PARTIE EN LIGNE connectee : match',netMatch.match.id,'role',netMatch.role)
-    const seed = (Date.now() ^ (Math.random()*1e9)) >>> 0
-    const rng = E.makeRng(seed)
+    const rng = E.makeRng((Date.now() ^ (Math.random()*1e9)) >>> 0)
+    // --- deck du joueur (avec filet de secours) ---
+    let myCards = (loadout && loadout.deck) ? {...loadout.deck} : {}
+    if(Object.values(myCards).reduce((a,b)=>a+b,0) < 10) myCards = suggestedDeck(CREATURES[loadout.pet].f)
+    const me = E.makeSide({ ...loadout, cards:myCards }, true, rng)
+
+    if(netMatch){
+      // ===== MODE EN LIGNE : l'adversaire est un HUMAIN =====
+      const m = netMatch.match
+      const oppCfgRaw = netMatch.role==='host' ? m.guest_deck : m.host_deck
+      const oppLoadout = oppCfgRaw && oppCfgRaw.pet ? oppCfgRaw : { pet:'chien', cards:{} }
+      let oppCards = oppLoadout.cards || oppLoadout.deck || {}
+      if(Object.values(oppCards).reduce((a,b)=>a+b,0) < 10) oppCards = suggestedDeck(CREATURES[oppLoadout.pet].f)
+      const opp = E.makeSide({ ...oppLoadout, cards:oppCards, name: oppLoadout.name||'Adversaire' }, false, rng)
+      // qui commence : tirage au sort partage (meme resultat des 2 cotes)
+      const hostFirst = firstPlayerIsHost(m.id)
+      const iStart = (netMatch.role==='host') === hostFirst
+      LOG('🌐 EN LIGNE — role', netMatch.role, '| je commence :', iStart)
+      g.current = { rng, me, opp, turn:1, active:null, busy:true, sel:null, over:false, net:true, role:netMatch.role, matchId:m.id, remoteReady:false }
+      // ouvrir le canal temps reel
+      if(closeChan.current) closeChan.current()
+      closeChan.current = openMatchChannel(m.id, {
+        onAction: handleRemoteAction,
+        onPresence: (n)=>{ LOG('presence online:', n) }
+      })
+      force()
+      if(iStart){ say('🌐 Connexion… tu commences dans un instant'); setTimeout(()=>startTurn(me), 1500) }
+      else { say('🌐 Partie en ligne — ton adversaire commence…'); waitRemoteTurn() }
+      return
+    }
+
+    // ===== MODE SOLO (vs IA) =====
     const petKeys = Object.keys(CREATURES)
     const oppPet = petKeys[Math.floor(rng()*petKeys.length)]
-    // Deck de secours : si le deck du joueur est vide ou trop petit (bouton TEST), on le complete
-    let myCards = (loadout && loadout.deck) ? {...loadout.deck} : {}
-    const total = Object.values(myCards).reduce((a,b)=>a+b,0)
-    if(total < 10){
-      const fallback = suggestedDeck(CREATURES[loadout.pet].f)
-      LOG('Deck joueur trop petit ('+total+' cartes) -> deck conseille applique', fallback)
-      myCards = fallback
-    }
-    const me = E.makeSide({ ...loadout, cards:myCards }, true, rng)
-    const oppCfg = { pet:oppPet, avatar:'h2', top:'chemisette', bottom:'jean', cards: oppDeck(oppPet), name:'Alex' }
-    const opp = E.makeSide(oppCfg, false, rng)
-    LOG('Joueur:', me.cr.n, 'deck='+me.deck.length, '| Adversaire:', opp.cr.n, 'deck='+opp.deck.length)
-    g.current = { rng, me, opp, turn:1, active:null, busy:true, sel:null, over:false }
+    const opp = E.makeSide({ pet:oppPet, avatar:'h2', top:'chemisette', bottom:'jean', cards: oppDeck(oppPet), name:'Alex' }, false, rng)
+    g.current = { rng, me, opp, turn:1, active:null, busy:true, sel:null, over:false, net:false }
     force()
     startTurn(me)
   }
@@ -55,6 +77,74 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
   function oppDeck(pet){
     return suggestedDeck(CREATURES[pet].f)
   }
+
+  // ===== SYNCHRO EN LIGNE =====
+  // J'applique une action recue de l'adversaire sur MON "opp" (= lui), et je rejoue l'anim.
+  async function handleRemoteAction(a){
+    const G=g.current; if(!G||!G.net||G.over) return
+    LOG('⇐ action distante', a.kind, a)
+    const s=G.opp, t=G.me
+    if(a.kind==='play'){
+      G.busy=true; force()
+      const card = CARDS[a.key]
+      // retirer une carte equivalente de la main/poches de opp (on gere opp "en aveugle")
+      removeOneFromOpp(s, a.key, a.from)
+      s.pa=Math.max(0,s.pa-E.paCostOf({key:a.key}))
+      say(`${s.name} joue ${card.n}.`); force()
+      await fx.current?.reveal({key:a.key})
+      if(card.type==='food'){ const g2=Math.min(card.gain||1,FOOD_CAP-s.foodMax); s.foodMax+=g2; s.food+=g2; fx.current?.sfx('food') }
+      else if(card.type==='soda'){ s.soda++; fx.current?.sfx('soda'); if(s.soda>=SODA_MAX){s.soda=0; s.extra=true; await fx.current?.flash(false)} }
+      else {
+        const effTarget = a.target || card.target
+        const effCard = {...card, target: effTarget}
+        await fx.current?.attack(s, t, effCard)
+        // on APPLIQUE le resultat transmis (pas de recalcul => pas de divergence)
+        applyRemoteResult(a.res, s, t, effCard)
+        say(`${card.n} : ${(a.res&&a.res.texts||[]).join(', ')}.`)
+      }
+      force(); await sleep(d(400))
+      if(await checkEnd()) return
+      G.busy=false; force()
+    }
+    else if(a.kind==='endturn'){
+      // l'adversaire a fini : a moi de jouer
+      LOG('⇐ fin de tour distante -> a moi')
+      // defausser la main de opp (comme il l'a fait chez lui)
+      s.discard.push(...s.hand); s.hand=[]
+      E.endTurnEffects(s)
+      G.turn++
+      startTurn(G.me)
+    }
+    else if(a.kind==='surrender'){ G.over=true; say('Adversaire a quitte.'); force() }
+  }
+
+  // Retire une carte de la main de opp (ou d'une poche). On ne connait pas sa main exacte -> on
+  // enleve n'importe quelle carte (compteur), l'affichage de opp reste indicatif.
+  function removeOneFromOpp(s, key, from){
+    const zone = (from==='back'||from==='front') ? s[from] : s.hand
+    let i = zone.findIndex(c=>c.key===key); if(i<0) i = s.hand.findIndex(c=>c.key===key)
+    if(i>=0){ (zone[i]?zone:s.hand).splice(i,1) }
+    else if(s.hand.length) s.hand.pop()
+  }
+  // Applique un resultat transmis par l'autre joueur (degats/etats deja calcules chez lui).
+  function applyRemoteResult(res, atk, def, card){
+    if(!res) return
+    if(res.miss){ fx.current?.dodge(def.isMe?'me':'opp'); fx.current?.float(def.isMe?'me':'opp',res.miss==='ESQUIVE'?'ESQUIVE !':'RATE !','#fff',true); return }
+    if(typeof res.defHp==='number') def.hp=res.defHp
+    if(typeof res.defPhp==='number') def.php=res.defPhp
+    if(typeof res.atkHp==='number') atk.hp=res.atkHp
+    if(typeof res.atkConf==='number') atk.conf=res.atkConf
+    if(typeof res.atkAggro==='number') atk.aggro=res.atkAggro
+    if(res.dmg){ const who=res.hitPerso?(def.isMe?'me':'opp'):(def.isMe?'me':'opp'); fx.current?.result(atk,def,{dmg:res.dmg,texts:res.texts||[]}) }
+    if(res.fxDef) def.fx={...def.fx,...res.fxDef}
+  }
+
+  // Passe mon ecran en lecture seule en attendant l'action distante.
+  function waitRemoteTurn(){ const G=g.current; if(!G)return; G.active=G.opp; G.busy=true; force() }
+
+  // Envoi d'une action que JE viens de faire (pour que l'autre la rejoue).
+  function emit(kind, extra){ if(g.current&&g.current.net){ sendAction({ kind, ...extra }) } }
+
 
   const spd=E.spd
   const say=(t)=>{ if(g.current) g.current.msg=t; force() }
@@ -74,7 +164,8 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
     LOG('  pioche', n, 'cartes ->', s.name, 'main='+s.hand.length, 'deck restant='+s.deck.length)
     if(s.hand.length===0) LOG('  ⚠️ MAIN VIDE apres pioche ! deck='+s.deck.length+' discard='+s.discard.length)
     await fx.current?.banner(s.extra?'⚡ ENCORE UN TOUR !':(s.isMe?'A TOI !':'TOUR D ALEX')); s.extra=false
-    if(s.isMe){ say((netMatch?`🌐 Partie en ligne (${netMatch.role==='host'?'hote':'invite'}) · `:'')+`Tour ${G.turn} : ${n} cartes. 1 nourriture max, garde tes grosses cartes en poche 👖`); G.busy=false; force() }
+    if(s.isMe){ say((G.net?'🌐 ':'')+`Tour ${G.turn} : ${n} cartes. 1 PA = 1 action, nourriture pour les sorts 👖`); G.busy=false; force() }
+    else if(G.net){ /* en ligne : l'adversaire humain joue de son cote, on attend ses actions */ G.busy=true; force() }
     else { force(); await aiPlay() }
   }
   const d=ms=> ms*(fastRef.current?0.55:1)
@@ -83,11 +174,18 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
 
   async function endTurn(skipDiscard){
     const G=g.current, s=G.active; if(G.over)return
-    LOG('endTurn', s.name, 'defausse', s.hand.length, 'cartes')
+    LOG('endTurn', s.name, 'defausse', s.hand.length, 'cartes', 'net='+!!G.net)
     G.busy=true; G.sel=null; force()
-    if(s.isMe && !skipDiscard){ s.discard.push(...s.hand); s.hand=[] } else if(!s.isMe){ s.discard.push(...s.hand); s.hand=[] }
+    if(s.hand.length && !skipDiscard){ s.discard.push(...s.hand); s.hand=[] }
     E.endTurnEffects(s); force()
     if(s.extra){ await fx.current?.flash(s.isMe); return startTurn(s) }
+    // ===== EN LIGNE : je passe la main a l'humain d'en face =====
+    if(G.net){
+      if(s.isMe){ emit('endturn',{}); say('🌐 Au tour de ton adversaire…'); waitRemoteTurn() }
+      // si c'etait le tour distant (gere par handleRemoteAction), startTurn(me) est deja appele la-bas
+      return
+    }
+    // ===== SOLO =====
     const n = s===G.me ? G.opp : G.me
     if(n===G.me) G.turn++
     startTurn(n)
@@ -96,15 +194,18 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
   async function playCard(s, c, from){
     const G=g.current; G.busy=true; G.sel=null; fx.current?.sfx('card')
     LOG('playCard', s.name, CARD(c).n, 'from='+from, 'PA='+s.pa, 'nourriture='+(E.costOf(s,c)))
-    if(E.usesPA(c)) s.pa = Math.max(0, s.pa - 1)   // PA seulement si la carte implique le lanceur
+    s.pa = Math.max(0, s.pa - E.paCostOf(c))   // PA = paCost (0 si attaque familier)
     const list = from==='hand'? s.hand : s[from]; list.splice(list.indexOf(c),1); force()
     if(!s.isMe) await fx.current?.reveal(c)
     const card=CARD(c), t = s===G.me?G.opp:G.me
     if(card.type==='food'){
       const gain=Math.min(card.gain||1, FOOD_CAP-s.foodMax); s.foodPlayed=true; s.foodMax+=gain; s.food+=gain
-      fx.current?.sfx('food'); say(`${s.name} pose ${card.n} : +${gain} 🍖.`); force(); await sleep(d(300))
+      fx.current?.sfx('food'); say(`${s.name} pose ${card.n} : +${gain} 🍖.`); force()
+      if(G.net && s.isMe) emit('play',{ key:c.key, from })
+      await sleep(d(300))
     } else if(card.type==='soda'){
       s.soda++; s.discard.push(c); fx.current?.sfx('soda'); say(`${s.name} boit un Soda (${s.soda}/${SODA_MAX}).`); force()
+      if(G.net && s.isMe) emit('play',{ key:c.key, from })
       if(s.soda>=SODA_MAX){ s.soda=0; s.extra=true; say(`⚡ ${s.name} passe en FLASH !`); await fx.current?.flash(s.isMe) }
       await sleep(d(250))
     } else {
@@ -124,6 +225,12 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
       else {
         fx.current?.result(s,t,res)
         say(`${card.n} : ${res.texts.join(', ')}.`)
+      }
+      // EN LIGNE : transmettre l'action + le resultat deja calcule (pas de recalcul chez l'autre)
+      if(G.net && s.isMe){
+        emit('play',{ key:c.key, from, target: effCard.target,
+          res:{ miss:res.miss, dmg:res.dmg, texts:res.texts, hitPerso:res.hitPerso,
+                defHp:t.hp, defPhp:t.php, atkHp:s.hp, atkConf:s.conf, atkAggro:s.aggro, fxDef:{...t.fx} } })
       }
       s.discard.push(c); force()
       await sleep(d(res.miss?450:650))
@@ -158,6 +265,8 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
       const prof=auth.profile
       if(prof){ const delta=win?20:-15
         await supabase.from('profiles').update({ wins:prof.wins+(win?1:0), losses:prof.losses+(win?0:1), elo:Math.max(0,prof.elo+delta) }).eq('id',auth.session.user.id) }
+      // points de boutique : +3 victoire / +1 defaite
+      try{ const tot=await awardPoints(win); if(tot!=null){ G.shopPoints=tot; LOG('points boutique ->',tot) } }catch(e){ LOG('awardPoints err',e.message) }
     }
     G.result = win; force(); return true
   }
@@ -168,7 +277,7 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
     if(G.opp.pa>0 && food && food.isFood){ await playCard(G.opp, food.card, 'hand'); if(G.over)return }
     for(let i=0;i<10;i++){
       const a=aiChooseAction(G.opp); if(!a||a.isFood) break
-      if(E.usesPA(a.card) && G.opp.pa<=0) break   // plus de PA pour une action du lanceur
+      if(E.paCostOf(a.card) > G.opp.pa) break   // plus de PA pour une action du lanceur
       await playCard(G.opp,a.card,a.zone); if(G.over)return
     }
     for(const h of aiPocketChoices(G.opp)){ const z=G.opp.back.length<G.opp.backMax?'back':G.opp.front.length<G.opp.frontMax?'front':null; if(!z)break; G.opp.hand.splice(G.opp.hand.indexOf(h),1); G.opp[z].push(h); say('Alex planque une carte 🤨'); force(); await sleep(d(400)) }
@@ -193,8 +302,9 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
           <div className="top" style={{marginTop:2}}><span>{opp.cr.n.toUpperCase()} {FAMILIES[opp.cr.f].i}</span><span>{opp.hp}/{opp.max}</span></div>
           <div className="hpbar"><div className="hpfill" style={{width:(opp.hp/opp.max*100)+'%',background:hpCol(opp)}}/></div>
           {accBar(opp)}
+          {spdBar(opp)}
           {gauges(opp)}
-          <div className="st">⚡{spd(opp)} 🍖{opp.food}/{opp.foodMax} 👖{opp.back.length} {statusTxt(opp)}</div>
+          <div className="st">🍖{opp.food}/{opp.foodMax} 👖{opp.back.length} {statusTxt(opp)}</div>
         </div>
         {/* perso adverse en haut a droite */}
         <div className="ent" id="oppPote" style={{right:4,top:4,left:'auto',width:90,height:140}}>
@@ -202,7 +312,7 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
           {opp.front.length>0 && <div className="oppfrontcard" style={{left:-4,top:44,fontSize:22}} onClick={()=>setZoomCard(opp.front[0])}>🂠</div>}
         </div>
         {/* animal adverse : vers le centre (un peu a gauche du milieu), regarde a droite... vers le bas */}
-        <Sprite side={opp} id="oppPet" style={{right:70,top:40,left:'auto',width:120,height:120}} scale={0.8}/>
+        <Sprite side={opp} id="oppPet" style={{right:96,top:40,left:'auto',width:120,height:120}} scale={0.72}/>
 
         {/* ===== LIGNE JOUEUR (bas) : perso a gauche · animal au centre · barre a droite ===== */}
         {/* ton perso en bas a gauche, vue aux genoux */}
@@ -210,7 +320,7 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
           <img className="spr avatarknee" src={IMG.avatarKnee[me.avatar]} alt="" style={{maxHeight:'none'}}/>
         </div>
         {/* ton animal : a droite de ton perso, vers le centre, face a l'animal adverse */}
-        <Sprite side={me} id="myPet" style={{left:150,top:150,width:150,height:160,zIndex:7}} scale={1.1} mine/>
+        <Sprite side={me} id="myPet" style={{left:140,top:152,width:150,height:160,zIndex:7}} scale={0.99} mine/>
 
         {/* ressources : en bas a gauche, sous ton perso */}
         <div className="res" style={{top:'auto',bottom:6,left:6}}>
@@ -225,8 +335,9 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
           <div className="top" style={{marginTop:2}}><span>{me.cr.n.toUpperCase()} {FAMILIES[me.cr.f].i}</span><span>{me.hp}/{me.max}</span></div>
           <div className="hpbar"><div className="hpfill" style={{width:(me.hp/me.max*100)+'%',background:hpCol(me)}}/></div>
           {accBar(me)}
+          {spdBar(me)}
           {gauges(me)}
-          <div className="st">⚡{spd(me)} {statusTxt(me)}</div>
+          <div className="st">{statusTxt(me)}</div>
         </div>
         <Fx ref={fx} getG={()=>g.current} dMul={()=>fastRef.current?0.55:1} pausedRef={pausedRef}/>
       </div>
@@ -259,11 +370,11 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
       <div className="handzone">
         {selCard && mine && !G.busy && (
           <div className="actbar on">
-            <div className="lbl">{CARD(selCard).n} · {costLbl(me,selCard)}{(E.whyNot(me,selCard)||(E.usesPA(selCard)&&me.pa<=0))&&<em>{E.whyNot(me,selCard)||'0 point d action'}</em>}</div>
+            <div className="lbl">{CARD(selCard).n} · {costLbl(me,selCard)}{(E.whyNot(me,selCard)||E.paCostOf(selCard)>me.pa)&&<em>{E.whyNot(me,selCard)||'0 point d action'}</em>}</div>
             {CARD(selCard).target==='choose' ? <>
-              <button disabled={!!E.whyNot(me,selCard)||(E.usesPA(selCard)&&me.pa<=0)} onClick={()=>{g.current.chooseTarget='pet';playCard(me,selCard,G.sel.from)}}>🎯 Familier</button>
-              <button disabled={!!E.whyNot(me,selCard)||(E.usesPA(selCard)&&me.pa<=0)} onClick={()=>{g.current.chooseTarget='perso';playCard(me,selCard,G.sel.from)}}>🎯 Perso</button>
-            </> : <button disabled={!!E.whyNot(me,selCard) || (E.usesPA(selCard)&&me.pa<=0)} onClick={()=>playCard(me,selCard,G.sel.from)}>JOUER</button>}
+              <button disabled={!!E.whyNot(me,selCard)||E.paCostOf(selCard)>me.pa} onClick={()=>{g.current.chooseTarget='pet';playCard(me,selCard,G.sel.from)}}>🎯 Familier</button>
+              <button disabled={!!E.whyNot(me,selCard)||E.paCostOf(selCard)>me.pa} onClick={()=>{g.current.chooseTarget='perso';playCard(me,selCard,G.sel.from)}}>🎯 Perso</button>
+            </> : <button disabled={!!E.whyNot(me,selCard) || E.paCostOf(selCard)>me.pa} onClick={()=>playCard(me,selCard,G.sel.from)}>JOUER</button>}
             {G.sel.from==='hand' && <button className="alt" disabled={me.back.length>=me.backMax&&me.front.length>=me.frontMax} onClick={()=>pocket(selCard)}>👖</button>}
             <button className="x" onClick={()=>{g.current.sel=null;force()}}>✕</button>
           </div>
@@ -272,7 +383,7 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
           {me.hand.length? me.hand.map((c,i)=>{
             const n=me.hand.length, off=i-(n-1)/2, sel=G.sel&&G.sel.id===c.id
             const tr = sel?`translate(${off*66}px,-54px) scale(1.12)`:`translate(${off*66}px,${off*off*5}px) rotate(${off*6}deg)`
-            return <Card key={c.id} card={CARD(c)} side={me} style={{transform:tr}} disabled={mine&&(!!E.whyNot(me,c)||(E.usesPA(c)&&me.pa<=0))} selected={sel}
+            return <Card key={c.id} card={CARD(c)} side={me} style={{transform:tr}} disabled={mine&&(!!E.whyNot(me,c)||E.paCostOf(c)>me.pa)} selected={sel}
                      onClick={()=>{ if(G.busy||!mine)return; g.current.sel=sel?null:{id:c.id,from:'hand'}; force() }}/>
           }) : <div className="handmsg">{mine?'Main vide → FIN DU TOUR':'Alex reflechit… 🤔'}</div>}
         </div>
@@ -334,4 +445,15 @@ function paGauge(s, sidePos){
   const pips=[]
   for(let i=0;i<s.paMax;i++) pips.push(<i key={i} className={i<s.pa?'on':''}/>)
   return <div className={'pagauge '+sidePos} title={'Points d action : '+s.pa+'/'+s.paMax}>{pips}</div>
+}
+
+// Barre de vitesse du familier (combinee a la precision => esquive). Max visuel 8.
+function spdBar(s){
+  const v=E.spd(s); const pct=Math.min(100, v/8*100)
+  return (
+    <div className="accwrap">
+      <div className="acclabel"><span>⚡ Vitesse</span><span>{v}</span></div>
+      <div className="spdbar"><div className="fill" style={{width:pct+'%'}}/></div>
+    </div>
+  )
 }

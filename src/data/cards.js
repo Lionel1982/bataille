@@ -73,7 +73,7 @@ export const CARDS={
   bave:{n:'Jet de bave',art:'💦',type:'spell',cost:3,pts:4,target:'pet',slow:3,anim:'splash',fx:'SPLOTCH !',col:'#7fd8ff',txt:'0 dégât, vitesse adverse -1 pendant 3 tours.'},
   sable:{n:'Jet de sable',art:'🏖️',type:'spell',cost:3,pts:4,target:'pet',blind:1,anim:'splash',fx:'AVEUGLÉ !',col:'#ffe082',txt:'Sa prochaine attaque a 60% de rater.'},
   grimace:{n:'Grimace',art:'🤪',type:'spell',cost:3,pts:4,target:'pote',fear:2,anim:'taunt',fx:'BOUH !',col:'#ff8af5',txt:'Dégâts adverses /2 pendant 2 tours.'},
-  vabosser:{n:'Va bosser !',art:'💼',type:'spell',cost:4,pts:6,target:'pote',work:1,anim:'taunt',fx:'AU BOULOT !',col:'#90a4ae',txt:'L\'adversaire pioche 2 cartes de moins.'},
+  vabosser:{n:'Va bosser !',art:'💼',type:'spell',cost:0,paCost:2,pts:6,target:'pote',work:1,anim:'taunt',fx:'AU BOULOT !',col:'#90a4ae',txt:'2 PA (pas de nourriture). L\'adversaire pioche 2 cartes de moins.'},
   poche:{n:'Poche trouée',art:'🕳️',type:'spell',cost:3,pts:4,target:'pote',hole:1,anim:'taunt',fx:'OUPS !',col:'#b39ddb',txt:'Défausse 1 carte de la poche adverse.'},
   calin:{n:'Gros câlin',art:'🤗',type:'spell',cost:4,pts:5,target:'self',heal:16,anim:'heal',fx:'CÂLIN !',col:'#ffb3d9',txt:'Soigne 16 PV.'},
   // --- Sorts de famille (foodType) ---
@@ -131,3 +131,24 @@ export function suggestedDeck(fam, maxPts){
 
 // attach keys
 for(const k in CARDS){ CARDS[k]._key = k }
+
+
+// ===== ECONOMIE : prix d'achat (points de boutique) par paliers =====
+// 3 = commune, 6 = carte de famille / utilitaire avancee, 12 = finisher (big)
+export function shopPrice(key){
+  const c = CARDS[key]; if(!c) return 3
+  if(c.big) return 12
+  if(c.foodType) return 6            // cartes de famille
+  if(c.type==='food') return 3
+  return 3
+}
+// Deck/collection de BASE, gratuit pour tous (toujours debloque).
+export const BASE_COLLECTION = ['croq','os','grillon','salade','vers','algue','graine','asticot','soda','morsure','cajole']
+// Toutes les cartes achetables (hors base).
+export const SHOP_CARDS = Object.keys(CARDS).filter(k=>!BASE_COLLECTION.includes(k))
+// Collection effective = base + cartes debloquees (persistees).
+export function ownedSet(unlocked){ return new Set([...BASE_COLLECTION, ...(unlocked||[])]) }
+
+export const FINISHERS = Object.keys(CARDS).filter(k=>CARDS[k].big)
+export const BOOSTER_PRICE = 10
+export const BOOSTER_REFUND = 3

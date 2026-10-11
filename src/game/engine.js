@@ -209,6 +209,20 @@ export function endTurnEffects(s){ for(const k of ['eyes','slow','fear','haste']
 // Une carte consomme un POINT D'ACTION si elle implique le LANCEUR (perso) :
 // nourriture, soda, et sorts qui ne ciblent PAS uniquement le familier (self/pote/perso/choose).
 // Les attaques du familier seul (target 'pet') ne coutent QUE de la nourriture.
+// Cout en points d'action d'une carte (0 si elle n'utilise pas de PA, sinon paCost ou 1 par defaut).
+// Categorie d'une carte pour les filtres de l'ecran deck.
+// 'nourriture' | 'joueur' (consomme PA) | 'familier' (attaque du familier)
+export function cardCategory(card){
+  const d = card.key ? C(card) : card
+  if(d.type==='food' || d.type==='soda') return 'nourriture'
+  if(d.type==='spell') return d.target==='pet' ? 'familier' : 'joueur'
+  return 'joueur'
+}
+export function paCostOf(card){
+  const d = card.key ? C(card) : card
+  if(!usesPA(d)) return 0
+  return d.paCost || 1
+}
 export function usesPA(card){
   const d = card.key ? C(card) : card
   if(d.type==='food' || d.type==='soda') return true

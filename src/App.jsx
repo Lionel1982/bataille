@@ -5,6 +5,7 @@ import Build from './screens/Build.jsx'
 import Battle from './screens/Battle.jsx'
 import Leaderboard from './screens/Leaderboard.jsx'
 import Online from './screens/Online.jsx'
+import Shop from './screens/Shop.jsx'
 
 export default function App(){
   const auth = useAuth()
@@ -25,6 +26,7 @@ export default function App(){
         <div className="topbar">
           <button onClick={()=>setScreen('build')}>🛠️ Deck</button>
           <button onClick={()=>setScreen('lead')}>🏆 Classement</button>
+          <button onClick={()=>setScreen('shop')}>🛒 Boutique</button>
           {connected
             ? <button onClick={auth.signOut}>🚪 {auth.profile?.pseudo||'Quitter'}</button>
             : <button onClick={()=>setScreen('auth')}>👤 {auth.online?'Connexion':'Compte'}</button>}
@@ -39,6 +41,7 @@ export default function App(){
         onStart={(match,role)=>{ setNetMatch({match,role}); setScreen('battle') }}
         onBack={()=>setScreen('build')} />}
       {screen==='lead'  && <Leaderboard auth={auth} onBack={()=>setScreen('build')} onLogin={()=>setScreen('auth')} />}
+      {screen==='shop'  && <Shop auth={auth} onBack={()=>setScreen('build')} />}
     </div>
   )
 }

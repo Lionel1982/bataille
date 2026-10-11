@@ -7,7 +7,7 @@ const MAP = {
   grimace:'grimace', pique:'grimace',
   vabosser:'vabosser',
   poche:'poche',
-  calin:'calin', apero:'calin', mue:'calin', bulle:'calin', envol:'calin'
+  calin:'calin', apero:'calin', mue:'calin', bulle:'calin'
 }
 export function actionArt(cardKey){
   const k = MAP[cardKey]

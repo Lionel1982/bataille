@@ -1,0 +1,36 @@
+SPRITES DE BATAILLE DE PO/ETS
+=============================
+
+Depose tes images ICI pour remplacer ou ajouter des sprites, SANS toucher au code.
+
+DOSSIERS
+--------
+  public/sprites/familiers/   -> les animaux (chat, chien, dragon...)
+  public/sprites/actions/     -> les dessins d'attaque (morsure, griffe...)
+  public/sprites/avatars/     -> les personnages joueurs
+
+FORMAT
+------
+  - PNG avec FOND TRANSPARENT
+  - Carre de preference (512x512 ou 1024x1024)
+  - Sujet bien centre, qui regarde VERS LA GAUCHE (comme les familiers actuels)
+  - Poids conseille < 500 Ko
+
+NOMMAGE (important : le nom = la cle utilisee par le jeu)
+--------
+  Familiers : le nom du familier en minuscules, ex :
+      chat.png  chien.png  souris.png  dragon.png
+  Actions   : action-<nom>.png, ex :
+      action-morsure.png  action-griffe.png
+  Avatars   : avatar-<id>.png, ex :
+      avatar-h1.png  avatar-f1.png
+
+COMMENT CA MARCHE
+-----------------
+  Un sprite depose ici REMPLACE automatiquement celui integre au jeu
+  (meme nom = priorite au fichier que tu as mis). Si le fichier n'existe
+  pas, le jeu garde le sprite d'origine. Pas besoin de recompiler : en
+  mode "npm run dev", il suffit de recharger la page.
+
+  Apres avoir ajoute des fichiers, pour la version en ligne : relance
+  3-ENVOYER-GITHUB.bat (Vercel redeploie).
