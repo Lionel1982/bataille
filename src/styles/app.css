@@ -501,3 +501,20 @@ img{max-width:100%}
 .infozone .actbar .actbtns .alt{background:#fff}
 .infozone .actbar .actbtns .x{background:#fff}
 .infozone .msg{display:block;margin-top:2px;font-size:13px}
+
+/* ===== v0.12.2 : cadre noir choix carte + carte au 1er plan + barre du bas ===== */
+.infozone .actbar.actdark{background:#111;color:#fff;border:3px solid #111;border-radius:10px;padding:7px 10px;margin-top:4px}
+.infozone .actbar.actdark .lbl{color:#ffe600}
+.infozone .actbar.actdark .actdesc{color:#fff;opacity:.95}
+.infozone .actbar.actdark .trymsg{color:#ff8a80;font-weight:800;margin:3px 0;font-size:12px}
+.infozone .actbar.actdark .actbtns button{background:#ffe600;color:#111;border:2px solid #fff}
+.infozone .actbar.actdark .actbtns .alt,.infozone .actbar.actdark .actbtns .x{background:#fff;color:#111}
+
+/* carte selectionnee TOUJOURS au premier plan (au-dessus des frames) */
+.card.sel{z-index:60 !important}
+.handzone{overflow:visible !important}
+
+/* barre du bas : pioche / poches / defausse / fin de tour, collee en bas */
+.bottombar{flex:none;display:flex;align-items:flex-end;justify-content:space-between;gap:5px;padding:6px 8px;border-top:3px solid #111;background:#fff}
+.bottombar .stack{display:flex;flex-direction:column;align-items:center;font-size:10px}
+.bottombar #endBtn{align-self:center}

@@ -30,6 +30,7 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
   const [petState,setPetState] = useState(0)   // clic familier : 0 opaque / 1 transparent / 2 derriere stats
   const [spellInfo,setSpellInfo] = useState(null)   // ? d'un sort -> info plein ecran (placeholder)
   const [menuOpen,setMenuOpen] = useState(false)   // menu ecrou (son/rapide/pause/menu/abandon)
+  const [tryMsg,setTryMsg] = useState('')   // raison d'impossibilite, affichee seulement apres clic JOUER
   const pausedRef=useRef(false), fastRef=useRef(false)
   pausedRef.current=paused; fastRef.current=fast
   const closeChan = useRef(null)
@@ -358,7 +359,7 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
           style={{left:'var(--pbox)',bottom:6,top:'auto',width:150,height:160,zIndex:petState===2?7:9}} scale={0.99} mine/>
 
         {/* ressources : en bas, decalees apres la box joueur */}
-        <div className="res" style={{top:'auto',bottom:6,left:'calc(var(--pbox) + 6px)'}}>
+        <div className="res" style={{top:'auto',bottom:4,left:4,zIndex:30}}>
           <div className="tok" id="tokFood">🍖</div><div className="num">{me.food}<small>/{me.foodMax}</small></div>
           <div className="tok" style={{borderColor:'#ff73c8'}}>🥤</div>
           <div className="pips">{Array.from({length:SODA_MAX},(_,i)=><i key={i} className={i<me.soda?'on':''}/>)}</div>
@@ -383,16 +384,16 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
           <span className="turn">TOUR {G.turn}{mine?' · TOI':' · ALEX'}</span>
           {selCard && mine && !G.busy ? (
             /* ZONE MULTI-INFO : explication + choix de la carte selectionnee */
-            <div className="actbar on">
-              <div className="lbl">{CARD(selCard).n} · {costLbl(me,selCard)}{(E.whyNot(me,selCard)||E.paCostOf(selCard)>me.pa)&&<em>{E.whyNot(me,selCard)||'0 point d action'}</em>}</div>
+            <div className="actbar on actdark">
+              <div className="lbl">{CARD(selCard).n} · {costLbl(me,selCard)}</div>
               <div className="actdesc">{CARD(selCard).txt}</div>
+              {tryMsg && <div className="trymsg">{tryMsg}</div>}
               <div className="actbtns">
-                {CARD(selCard).target==='choose' ? <>
-                  <button disabled={!!E.whyNot(me,selCard)||E.paCostOf(selCard)>me.pa} onClick={()=>{g.current.chooseTarget='pet';playCard(me,selCard,G.sel.from)}}>🎯 Familier</button>
-                  <button disabled={!!E.whyNot(me,selCard)||E.paCostOf(selCard)>me.pa} onClick={()=>{g.current.chooseTarget='perso';playCard(me,selCard,G.sel.from)}}>🎯 Perso</button>
-                </> : <button disabled={!!E.whyNot(me,selCard) || E.paCostOf(selCard)>me.pa} onClick={()=>playCard(me,selCard,G.sel.from)}>JOUER</button>}
+                {(()=>{ const why=E.whyNot(me,selCard)||(E.paCostOf(selCard)>me.pa?'0 point d action':''); const tryPlay=(aim)=>{ if(why){ setTryMsg(why); return } if(aim){g.current.chooseTarget=aim} setTryMsg(''); playCard(me,selCard,G.sel.from) }; return CARD(selCard).target==='choose'
+                  ? <><button onClick={()=>tryPlay('pet')}>🎯 Familier</button><button onClick={()=>tryPlay('perso')}>🎯 Perso</button></>
+                  : <button onClick={()=>tryPlay(null)}>JOUER</button> })()}
                 {G.sel.from==='hand' && <button className="alt" disabled={me.back.length>=me.backMax&&me.front.length>=me.frontMax} onClick={()=>pocket(selCard)}>👖</button>}
-                <button className="x" onClick={()=>{g.current.sel=null;force()}}>✕</button>
+                <button className="x" onClick={()=>{g.current.sel=null;setTryMsg('');force()}}>✕</button>
               </div>
             </div>
           ) : (
@@ -418,15 +419,6 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
           </div>
         </div>
 
-        <div className="row">
-          <div className="stack"><div className="pile">{me.deck.length}</div>Pioche</div>
-          <div className="stack"><div className="slots">
-            {Array.from({length:me.backMax}).map((_,i)=>slot(me,'back',i,G,setSel))}
-            {Array.from({length:me.frontMax}).map((_,i)=>slot(me,'front',i,G,setSel))}
-          </div>👖 Poches</div>
-          <div className="stack"><div className="pile disc">{me.discard.length}</div>Defausse</div>
-          <button id="endBtn" disabled={G.busy||!mine} onClick={()=>!G.busy&&mine&&endTurn()}>FIN DU<br/>TOUR ▶</button>
-        </div>
         {/* reglages regroupes dans le bouton ecrou (voir en haut a droite de la scene) */}
       </div>
 
@@ -440,6 +432,17 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
                      onClick={()=>{ if(G.busy||!mine)return; g.current.sel=sel?null:{id:c.id,from:'hand'}; force() }}/>
           }) : <div className="handmsg">{mine?'Main vide → FIN DU TOUR':'Alex reflechit… 🤔'}</div>}
         </div>
+      </div>
+
+      {/* ===== BARRE DU BAS : pioche / poches / defausse / fin de tour ===== */}
+      <div className="bottombar">
+        <div className="stack"><div className="pile">{me.deck.length}</div>Pioche</div>
+        <div className="stack"><div className="slots">
+          {Array.from({length:me.backMax}).map((_,i)=>slot(me,'back',i,G,setSel))}
+          {Array.from({length:me.frontMax}).map((_,i)=>slot(me,'front',i,G,setSel))}
+        </div>👖 Poches</div>
+        <div className="stack"><div className="pile disc">{me.discard.length}</div>Defausse</div>
+        <button id="endBtn" disabled={G.busy||!mine} onClick={()=>!G.busy&&mine&&endTurn()}>FIN DU<br/>TOUR ▶</button>
       </div>
 
       {/* zoom carte poche avant adverse */}
@@ -466,7 +469,7 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
     </div>
   )
 
-  function setSel(sel){ g.current.sel=sel; force() }
+  function setSel(sel){ g.current.sel=sel; setTryMsg(''); force() }
 }
 
 function slot(me,z,i,G,setSel){
