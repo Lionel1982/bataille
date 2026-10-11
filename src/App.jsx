@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { useAuth } from './lib/useAuth.js'
+import { useLoadout } from './lib/useLoadout.js'
 import Auth from './screens/Auth.jsx'
-import Build from './screens/Build.jsx'
+import Home from './screens/Home.jsx'
+import AvatarScreen from './screens/AvatarScreen.jsx'
+import FamilierScreen from './screens/FamilierScreen.jsx'
+import DeckScreen from './screens/DeckScreen.jsx'
 import Battle from './screens/Battle.jsx'
 import Leaderboard from './screens/Leaderboard.jsx'
 import Online from './screens/Online.jsx'
@@ -9,22 +13,22 @@ import Shop from './screens/Shop.jsx'
 
 export default function App(){
   const auth = useAuth()
-  const [screen,setScreen] = useState('build')   // build | battle | lead | auth | online
+  const ld = useLoadout()
+  const [screen,setScreen] = useState('home')   // home|avatar|familier|deck|battle|online|lead|shop|auth
   const [loadout,setLoadout] = useState(null)
-  const [netMatch,setNetMatch] = useState(null)  // {match, role} pour une partie en ligne
+  const [netMatch,setNetMatch] = useState(null)
+  const [onlineMode,setOnlineMode] = useState('menu')  // 'create' | 'join'
 
   if(auth.loading) return <div className="phone"><div className="auth"><h1>⚔️</h1></div></div>
-
-  if(screen==='auth'){
-    return <div className="phone"><Auth auth={auth} onBack={()=>setScreen('build')} /></div>
-  }
+  if(screen==='auth') return <div className="phone"><Auth auth={auth} onBack={()=>setScreen('home')} /></div>
 
   const connected = auth.online && auth.session
+  const showBar = ['home','lead','shop'].includes(screen)
   return (
     <div className="phone">
-      {screen!=='battle' && screen!=='online' && (
+      {showBar && (
         <div className="topbar">
-          <button onClick={()=>setScreen('build')}>🛠️ Deck</button>
+          <button onClick={()=>setScreen('home')}>🏠 Accueil</button>
           <button onClick={()=>setScreen('lead')}>🏆 Classement</button>
           <button onClick={()=>setScreen('shop')}>🛒 Boutique</button>
           {connected
@@ -32,16 +36,23 @@ export default function App(){
             : <button onClick={()=>setScreen('auth')}>👤 {auth.online?'Connexion':'Compte'}</button>}
         </div>
       )}
-      {screen==='build' && <Build auth={auth}
-        onFight={(cfg)=>{setLoadout(cfg);setScreen('battle')}}
-        onOnline={(cfg)=>{setLoadout(cfg);setScreen('online')}} />}
+
+      {screen==='home' && <Home auth={auth} ld={ld} go={setScreen}
+        onFight={(cfg)=>{ setLoadout(cfg); setNetMatch(null); setScreen('battle') }}
+        onOnline={(cfg)=>{ setLoadout(cfg); setOnlineMode('create'); setScreen('online') }}
+        onJoin={(cfg)=>{ setLoadout(cfg); setOnlineMode('join'); setScreen('online') }} />}
+
+      {screen==='avatar'   && <AvatarScreen   ld={ld} onBack={()=>setScreen('home')} />}
+      {screen==='familier' && <FamilierScreen ld={ld} onBack={()=>setScreen('home')} />}
+      {screen==='deck'     && <DeckScreen     ld={ld} onBack={()=>setScreen('home')} />}
+
       {screen==='battle' && <Battle auth={auth} loadout={loadout} netMatch={netMatch}
-        onExit={()=>{setNetMatch(null);setScreen('build')}} />}
-      {screen==='online' && <Online auth={auth} loadout={loadout}
+        onExit={()=>{ setNetMatch(null); setScreen('home') }} />}
+      {screen==='online' && <Online auth={auth} loadout={loadout} startMode={onlineMode}
         onStart={(match,role)=>{ setNetMatch({match,role}); setScreen('battle') }}
-        onBack={()=>setScreen('build')} />}
-      {screen==='lead'  && <Leaderboard auth={auth} onBack={()=>setScreen('build')} onLogin={()=>setScreen('auth')} />}
-      {screen==='shop'  && <Shop auth={auth} onBack={()=>setScreen('build')} />}
+        onBack={()=>setScreen('home')} />}
+      {screen==='lead'  && <Leaderboard auth={auth} onBack={()=>setScreen('home')} onLogin={()=>setScreen('auth')} />}
+      {screen==='shop'  && <Shop auth={auth} onBack={()=>setScreen('home')} />}
     </div>
   )
 }

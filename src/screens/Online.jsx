@@ -4,8 +4,8 @@ import { createMatch, joinMatch, subscribeMatch } from '../lib/online.js'
 
 // Lobby "partie par code" : creer (= hote, attend) ou rejoindre (= guest).
 // Quand les deux sont la (status 'playing'), on appelle onStart(match, role).
-export default function Online({ auth, loadout, onStart, onBack }){
-  const [mode,setMode] = useState('menu')     // menu | hosting | joining
+export default function Online({ auth, loadout, onStart, onBack, startMode='menu' }){
+  const [mode,setMode] = useState(startMode==='join'?'menu':'menu')     // menu | hosting | joining
   const [code,setCode] = useState('')
   const [input,setInput] = useState('')
   const [err,setErr] = useState('')
@@ -13,6 +13,7 @@ export default function Online({ auth, loadout, onStart, onBack }){
   const unsub = useRef(null)
 
   useEffect(()=>()=>{ if(unsub.current) unsub.current() },[])
+  useEffect(()=>{ if(startMode==='create'){ host() } /* eslint-disable-next-line */ },[])
 
   if(!online) return (
     <div className="auth">
