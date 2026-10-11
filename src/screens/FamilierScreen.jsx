@@ -1,4 +1,4 @@
-import { CREATURES, TOPS, BOTTOMS, FAMILIES, TRAITS } from '../data/cards.js'
+import { CREATURES, FAMILIES, TRAITS } from '../data/cards.js'
 import { IMG } from '../assets/images.js'
 
 // Ecran dedie : choix du familier et des fringues (poches/PV).
@@ -21,10 +21,6 @@ export default function FamilierScreen({ ld, onBack }){
             </div>
           ))}
         </div>
-        <h2 className="s2h2">Tes fringues</h2>
-        <p className="hint">Elles donnent des poches (stockage de cartes) et parfois des PV.</p>
-        <div className="opts">{Object.entries(TOPS).map(([k,o])=>(<div key={k} className={'opt'+(b.top===k?' sel':'')} onClick={()=>set({top:k})}><div className="e">{o.i}</div><b>{o.n}·{o.pts}💰</b>{o.d}</div>))}</div>
-        <div className="opts">{Object.entries(BOTTOMS).map(([k,o])=>(<div key={k} className={'opt'+(b.bottom===k?' sel':'')} onClick={()=>set({bottom:k})}><div className="e">{o.i}</div><b>{o.n}·{o.pts}💰</b>{o.d}</div>))}</div>
       </div>
       <div className="s2foot"><button className="big" onClick={onBack}>✓ VALIDER</button></div>
     </div>

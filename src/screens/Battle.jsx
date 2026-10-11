@@ -7,6 +7,7 @@ import { IMG } from '../assets/images.js'
 import { supabase, online } from '../lib/supabase.js'
 import { openMatchChannel, sendAction, firstPlayerIsHost } from '../lib/online.js'
 import { awardPoints } from '../lib/economy.js'
+import { getSetting } from '../lib/settings.js'
 import Sprite from '../components/Sprite.jsx'
 import Card from '../components/Card.jsx'
 import Fx from '../components/Fx.jsx'
@@ -14,8 +15,8 @@ import Fx from '../components/Fx.jsx'
 const sleep=ms=>new Promise(r=>setTimeout(r,ms))
 const CARD=E.CARD
 // --- DEBUG : logs detailles (visible dans la console du navigateur F12) ---
-const DBG=true
-const LOG=(...a)=>{ if(DBG) console.log('%c[BDP]','color:#ff3fb4;font-weight:bold',...a) }
+const DBG=()=>getSetting('debugLogs')!==false
+const LOG=(...a)=>{ if(DBG()) console.log('%c[BDP]','color:#ff3fb4;font-weight:bold',...a) }
 const SNAP=(s)=> s?({hp:s.hp+'/'+s.max,deck:s.deck.length,hand:s.hand.length,disc:s.discard.length,food:s.food+'/'+s.foodMax,fx:{...s.fx}}):null
 
 export default function Battle({ auth, loadout, onExit, netMatch=null }){

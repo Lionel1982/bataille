@@ -217,9 +217,11 @@ html,body{height:100%}
   .bfoot{flex:none}
 }
 /* bouton retour en haut d'un ecran secondaire */
-.backbar{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#111}
-.backbar button{font-family:'Bangers';font-size:15px;border:2px solid #fff;border-radius:8px;padding:4px 12px;background:#ffd633}
+.backbar{display:flex;align-items:center;gap:8px;padding:8px 10px;background:linear-gradient(90deg,#ff3fb4,#ff8af5);border-bottom:3px solid #111}
+.backbar button{font-family:'Bangers';font-size:15px;border:2px solid #111;border-radius:20px;padding:5px 14px;background:#fff;box-shadow:2px 2px 0 #111;display:flex;align-items:center;gap:4px}
+.backbar button:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #111}
 .backbar .sp{flex:1}
+.backbar b{color:#fff;text-shadow:1px 1px 0 #111}
 
 .testbtn{width:100%;margin-top:6px;font-family:'Bangers';font-size:16px;background:#fff;color:#111;border:3px dashed #ff3fb4;border-radius:12px;padding:6px}
 
@@ -358,3 +360,14 @@ img{max-width:100%}
 .avbig.sel{box-shadow:0 0 0 3px #fff,0 0 0 6px #ff3fb4}
 .deckstatus{flex:none;font-family:'Bangers';font-size:14px;padding:4px 8px;border-radius:8px}
 .deckstatus.ok{color:#2e7d32}.deckstatus.ko{color:#e53935}
+
+/* ===== Ecran Mon compte ===== */
+.acctbox{background:#fff;border:3px solid #111;border-radius:12px;padding:12px;box-shadow:3px 3px 0 #111}
+.acctbox .accstat{font-size:12px;opacity:.75;margin-top:4px}
+.big.alt2{background:#aef1fb;color:#111}
+.optline{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:2px solid #111;border-radius:10px;background:#fff;margin-bottom:6px;font-size:13px;font-weight:700}
+.toggle{font-family:'Bangers';font-size:14px;border:2px solid #111;border-radius:14px;padding:3px 14px;background:#ccc;min-width:54px}
+.toggle.on{background:#4caf50;color:#fff}
+.smallbtn{font-family:'Bangers';font-size:13px;border:2px solid #111;border-radius:9px;padding:4px 12px;background:#ffd633}
+.smallbtn.danger{background:#ff8a80}
+.smallbtn:disabled{opacity:.5}

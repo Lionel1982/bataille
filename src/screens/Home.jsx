@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CREATURES, CARDS, BUDGET, DECK_SIZE } from '../data/cards.js'
 import { IMG } from '../assets/images.js'
 import { supabase, online } from '../lib/supabase.js'
+import { getSetting } from '../lib/settings.js'
 
 // Ecran d'accueil : 4 tuiles (Jouer / Avatar / Familier / Deck).
 // 'Jouer' ouvre un sous-menu : Creer / Rejoindre / IA.
@@ -13,7 +14,7 @@ export default function Home({ auth, ld, go, onFight, onOnline, onJoin }){
   const deckPts = Object.entries(b.deck).reduce((a,[k,v])=>a+v*CARDS[k].pts,0)
   const spent = CREATURES[b.pet].pts + deckPts
   const food = Object.entries(b.deck).filter(([k])=>CARDS[k].type==='food').reduce((a,[k,v])=>a+v*(CARDS[k].gain||1),0)
-  const deckReady = deckCount===DECK_SIZE && food>=8 && spent<=BUDGET
+  const deckReady = (deckCount===DECK_SIZE && food>=8 && spent<=BUDGET) || getSetting('allowIncomplete')
 
   async function saveDeck(){
     if(online && auth.session){

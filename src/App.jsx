@@ -10,6 +10,7 @@ import Battle from './screens/Battle.jsx'
 import Leaderboard from './screens/Leaderboard.jsx'
 import Online from './screens/Online.jsx'
 import Shop from './screens/Shop.jsx'
+import Account from './screens/Account.jsx'
 
 export default function App(){
   const auth = useAuth()
@@ -31,9 +32,7 @@ export default function App(){
           <button onClick={()=>setScreen('home')}>🏠 Accueil</button>
           <button onClick={()=>setScreen('lead')}>🏆 Classement</button>
           <button onClick={()=>setScreen('shop')}>🛒 Boutique</button>
-          {connected
-            ? <button onClick={auth.signOut}>🚪 {auth.profile?.pseudo||'Quitter'}</button>
-            : <button onClick={()=>setScreen('auth')}>👤 {auth.online?'Connexion':'Compte'}</button>}
+          <button onClick={()=>setScreen('account')}>👤 {connected?(auth.profile?.pseudo||'Compte'):'Compte'}</button>
         </div>
       )}
 
@@ -53,6 +52,7 @@ export default function App(){
         onBack={()=>setScreen('home')} />}
       {screen==='lead'  && <Leaderboard auth={auth} onBack={()=>setScreen('home')} onLogin={()=>setScreen('auth')} />}
       {screen==='shop'  && <Shop auth={auth} onBack={()=>setScreen('home')} />}
+      {screen==='account' && <Account auth={auth} onBack={()=>setScreen('home')} onLogin={()=>setScreen('auth')} onLeaderboard={()=>setScreen('lead')} />}
     </div>
   )
 }

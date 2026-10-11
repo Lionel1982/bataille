@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CARDS, FAMILIES, FOODS, shopPrice, SHOP_CARDS, BASE_COLLECTION, FINISHERS, BOOSTER_PRICE, BOOSTER_REFUND } from '../data/cards.js'
-import { loadWallet, unlockCard, openBooster, debugAddPoints } from '../lib/economy.js'
+import { loadWallet, unlockCard, openBooster } from '../lib/economy.js'
 import { online } from '../lib/supabase.js'
 
 // Boutique : debloquer des cartes a l'unite OU ouvrir un booster (10 pts -> 3 cartes).
@@ -46,8 +46,7 @@ export default function Shop({ auth, onBack }){
 
   return (
     <div className="lead">
-      <div className="backbar"><button onClick={onBack}>◀ Retour</button><span className="sp"/><b style={{color:'#fff'}}>🛒 Boutique · {wallet.points} pts</b>
-        <button className="dbgbtn" onClick={async()=>{ try{ const t=await debugAddPoints(50); setWallet(w=>({...w,points:t})) }catch(e){ setErr(e.message) } }}>+50 (debug)</button></div>
+      <div className="backbar"><button onClick={onBack}>◀ Retour</button><span className="sp"/><b style={{color:'#fff'}}>🛒 Boutique · {wallet.points} pts</b></div>
 
       {/* Booster */}
       <div className="boosterbox">
