@@ -480,3 +480,24 @@ img{max-width:100%}
 .spellinfobox{background:#fff;border:4px solid #111;border-radius:16px;padding:18px;max-width:84%;text-align:center;box-shadow:6px 6px 0 #111}
 .spellinfobox h3{font-family:'Bangers';font-size:26px;margin-bottom:6px}
 .spellinfobox p{font-size:14px;line-height:1.4;margin-bottom:12px}
+
+/* ===== v0.12.1 : bouton ecrou (reglages) + zone multi-info ===== */
+.cog{position:absolute;top:6px;right:8px;z-index:40;width:34px;height:34px;border:3px solid #111;border-radius:9px;background:#fff;font-size:17px;cursor:pointer;box-shadow:2px 2px 0 #111;padding:0}
+.cog:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #111}
+.cogmenu{position:absolute;inset:0;z-index:41;background:rgba(0,0,0,.25);display:flex;align-items:flex-start;justify-content:flex-end}
+.cogpanel{margin:44px 8px 0 0;background:#fff;border:3px solid #111;border-radius:12px;box-shadow:4px 4px 0 #111;display:flex;flex-direction:column;gap:4px;padding:8px;min-width:180px}
+.cogpanel button{border:2px solid #111;border-radius:8px;background:#f6f6f6;padding:7px 10px;font-weight:700;font-size:13px;text-align:left;cursor:pointer}
+.cogpanel button:active{transform:translate(1px,1px)}
+.cogpanel .close{background:#ffe600;text-align:center}
+
+/* zone multi-info (ancienne .dialog) : explication + choix de la carte au-dessus du tour */
+.infozone .actbar.on{display:flex;flex-direction:column;gap:4px;margin-top:4px;background:transparent;border:none;padding:0;position:static}
+.infozone .actbar .lbl{font-weight:800;font-size:13px}
+.infozone .actbar .lbl em{color:#c62828;font-style:normal;margin-left:6px;font-size:11px}
+.infozone .actbar .actdesc{font-size:12px;line-height:1.25;opacity:.9}
+.infozone .actbar .actbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+.infozone .actbar .actbtns button{border:2px solid #111;border-radius:8px;background:#ffe600;font-weight:800;padding:5px 12px;cursor:pointer;font-size:13px}
+.infozone .actbar .actbtns button:disabled{opacity:.45;cursor:not-allowed}
+.infozone .actbar .actbtns .alt{background:#fff}
+.infozone .actbar .actbtns .x{background:#fff}
+.infozone .msg{display:block;margin-top:2px;font-size:13px}

@@ -29,6 +29,7 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
   const [fast,setFast] = useState(false)
   const [petState,setPetState] = useState(0)   // clic familier : 0 opaque / 1 transparent / 2 derriere stats
   const [spellInfo,setSpellInfo] = useState(null)   // ? d'un sort -> info plein ecran (placeholder)
+  const [menuOpen,setMenuOpen] = useState(false)   // menu ecrou (son/rapide/pause/menu/abandon)
   const pausedRef=useRef(false), fastRef=useRef(false)
   pausedRef.current=paused; fastRef.current=fast
   const closeChan = useRef(null)
@@ -306,6 +307,22 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
 
   return (
     <div className="screen on" style={{position:'relative'}}>
+      {/* ===== Bouton ECROU (reglages) en haut a droite ===== */}
+      <button className="cog" onClick={()=>setMenuOpen(o=>!o)} title="Reglages">⚙️</button>
+      {menuOpen && <div className="cogmenu" onClick={()=>setMenuOpen(false)}>
+        <div className="cogpanel" onClick={e=>e.stopPropagation()}>
+          <button onClick={()=>{fx.current?.toggleSound(); force()}}>🔊 Son</button>
+          <button onClick={()=>setFast(f=>!f)}>{fast?'⏩ Rapide : ON':'▶ Rapide : OFF'}</button>
+          <button onClick={()=>setPaused(p=>!p)}>{paused?'⏸ Pause : ON':'▶ Pause : OFF'}</button>
+          {G.net
+            ? <button onClick={()=>{ LOG('quitter partie en ligne'); onExit() }}>◀ Quitter la partie</button>
+            : <>
+                <button onClick={()=>{ LOG('menu (reprendre possible)'); onHome&&onHome() }}>⌂ Menu (reprendre)</button>
+                <button onClick={()=>{ LOG('abandonner'); onGameOver&&onGameOver(); onExit() }}>🏳️ Abandonner</button>
+              </>}
+          <button className="close" onClick={()=>setMenuOpen(false)}>Fermer</button>
+        </div>
+      </div>}
       <div className="scene" id="scene">
         <div className="sky"/><div className="house h1"/><div className="house h2"/><div className="house h3"/><div className="road"/>
 
@@ -362,9 +379,26 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
 
       {/* MILIEU */}
       <div className="mid">
-        <div className="dialog">
+        <div className="dialog infozone">
           <span className="turn">TOUR {G.turn}{mine?' · TOI':' · ALEX'}</span>
-          <span>{G.msg||''}</span>
+          {selCard && mine && !G.busy ? (
+            /* ZONE MULTI-INFO : explication + choix de la carte selectionnee */
+            <div className="actbar on">
+              <div className="lbl">{CARD(selCard).n} · {costLbl(me,selCard)}{(E.whyNot(me,selCard)||E.paCostOf(selCard)>me.pa)&&<em>{E.whyNot(me,selCard)||'0 point d action'}</em>}</div>
+              <div className="actdesc">{CARD(selCard).txt}</div>
+              <div className="actbtns">
+                {CARD(selCard).target==='choose' ? <>
+                  <button disabled={!!E.whyNot(me,selCard)||E.paCostOf(selCard)>me.pa} onClick={()=>{g.current.chooseTarget='pet';playCard(me,selCard,G.sel.from)}}>🎯 Familier</button>
+                  <button disabled={!!E.whyNot(me,selCard)||E.paCostOf(selCard)>me.pa} onClick={()=>{g.current.chooseTarget='perso';playCard(me,selCard,G.sel.from)}}>🎯 Perso</button>
+                </> : <button disabled={!!E.whyNot(me,selCard) || E.paCostOf(selCard)>me.pa} onClick={()=>playCard(me,selCard,G.sel.from)}>JOUER</button>}
+                {G.sel.from==='hand' && <button className="alt" disabled={me.back.length>=me.backMax&&me.front.length>=me.frontMax} onClick={()=>pocket(selCard)}>👖</button>}
+                <button className="x" onClick={()=>{g.current.sel=null;force()}}>✕</button>
+              </div>
+            </div>
+          ) : (
+            /* sinon : info de l'action precedente / etat du tour */
+            <span className="msg">{G.msg||''}</span>
+          )}
           {G._cont && <button id="cont" style={{display:'block'}} onClick={()=>g.current._cont&&g.current._cont()}>SUITE ▶</button>}
         </div>
 
@@ -393,32 +427,11 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
           <div className="stack"><div className="pile disc">{me.discard.length}</div>Defausse</div>
           <button id="endBtn" disabled={G.busy||!mine} onClick={()=>!G.busy&&mine&&endTurn()}>FIN DU<br/>TOUR ▶</button>
         </div>
-        <div className="toggles" style={{padding:'4px 0 0'}}>
-          <button className="tg" onClick={()=>{fx.current?.toggleSound(); force()}}>🔊</button>
-          <button className="tg" onClick={()=>setFast(f=>!f)}>{fast?'⏩ RAPIDE':'▶ RAPIDE'}</button>
-          <button className="tg" onClick={()=>setPaused(p=>!p)}>{paused?'⏸ PAUSE':'▶ PAUSE'}</button>
-          {G.net
-            ? <button className="tg" onClick={()=>{ LOG('quitter partie en ligne'); onExit() }}>◀ QUITTER</button>
-            : <>
-                <button className="tg" onClick={()=>{ LOG('menu (reprendre possible)'); onHome&&onHome() }}>⌂ MENU</button>
-                <button className="tg" onClick={()=>{ LOG('abandonner'); onGameOver&&onGameOver(); onExit() }}>🏳️</button>
-              </>}
-        </div>
+        {/* reglages regroupes dans le bouton ecrou (voir en haut a droite de la scene) */}
       </div>
 
       {/* MAIN */}
       <div className="handzone">
-        {selCard && mine && !G.busy && (
-          <div className="actbar on">
-            <div className="lbl">{CARD(selCard).n} · {costLbl(me,selCard)}{(E.whyNot(me,selCard)||E.paCostOf(selCard)>me.pa)&&<em>{E.whyNot(me,selCard)||'0 point d action'}</em>}</div>
-            {CARD(selCard).target==='choose' ? <>
-              <button disabled={!!E.whyNot(me,selCard)||E.paCostOf(selCard)>me.pa} onClick={()=>{g.current.chooseTarget='pet';playCard(me,selCard,G.sel.from)}}>🎯 Familier</button>
-              <button disabled={!!E.whyNot(me,selCard)||E.paCostOf(selCard)>me.pa} onClick={()=>{g.current.chooseTarget='perso';playCard(me,selCard,G.sel.from)}}>🎯 Perso</button>
-            </> : <button disabled={!!E.whyNot(me,selCard) || E.paCostOf(selCard)>me.pa} onClick={()=>playCard(me,selCard,G.sel.from)}>JOUER</button>}
-            {G.sel.from==='hand' && <button className="alt" disabled={me.back.length>=me.backMax&&me.front.length>=me.frontMax} onClick={()=>pocket(selCard)}>👖</button>}
-            <button className="x" onClick={()=>{g.current.sel=null;force()}}>✕</button>
-          </div>
-        )}
         <div id="hand">
           {me.hand.length? me.hand.map((c,i)=>{
             const n=me.hand.length, off=i-(n-1)/2, sel=G.sel&&G.sel.id===c.id
