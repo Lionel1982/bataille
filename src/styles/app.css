@@ -546,3 +546,8 @@ img{max-width:100%}
 .spellbtn.ready:active{transform:translate(1px,1px)}
 .spellbtn .scost{font-size:12px;white-space:nowrap}
 .spellcostline{font-weight:800;margin-bottom:4px}
+
+/* ===== Confiance en carres par paliers (comme l'agressivite) ===== */
+.confcubes{flex:1;display:flex;gap:2px}
+.confcubes i{flex:1;height:7px;border:1px solid #111;border-radius:2px;background:#eee}
+.confcubes i.on{background:linear-gradient(180deg,#5c6bc0,#42a5f5)}

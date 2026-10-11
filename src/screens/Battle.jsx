@@ -570,7 +570,7 @@ function gauges(s){
   const confPct=Math.round((s.conf/E.CONF_MAX)*100)
   return (
     <div className="gauges">
-      <div className="g"><span>💙 Confiance</span><div className="gbar"><div className="gfill conf" style={{width:confPct+'%'}}/></div></div>
+      <div className="g"><span>💙 Confiance</span><div className="confcubes">{Array.from({length:10},(_,i)=><i key={i} className={i<Math.round(s.conf/10)?'on':''}/>)}</div></div>
       <div className="g"><span>😡 Agressivite</span><div className="aggro">{Array.from({length:E.AGGRO_MAX},(_,i)=><i key={i} className={i<s.aggro?'on':''}/>)}</div></div>
       {s.turned>0 && <div className="turned">😾 RETOURNE !</div>}
     </div>
