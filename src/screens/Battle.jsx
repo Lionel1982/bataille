@@ -317,11 +317,11 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
         </div>
         {/* perso adverse en haut a droite */}
         <div className="ent" id="oppPote" style={{right:4,top:4,left:'auto',width:90,height:140}}>
-          <img className="spr" src={IMG.oppPote} style={{width:88}} alt=""/>
+          <img className="spr" src={IMG.avatarFull[opp.avatar]||IMG.oppPote} style={{width:88}} alt=""/>
           {opp.front.length>0 && <div className="oppfrontcard" style={{left:-4,top:44,fontSize:22}} onClick={()=>setZoomCard(opp.front[0])}>🂠</div>}
         </div>
         {/* animal adverse : vers le centre (un peu a gauche du milieu), regarde a droite... vers le bas */}
-        <Sprite side={opp} id="oppPet" style={{right:96,top:40,left:'auto',width:120,height:120,zIndex:9}} scale={0.72}/>
+        <Sprite side={opp} id="oppPet" style={{right:120,top:46,left:'auto',width:120,height:120,zIndex:9}} scale={0.7}/>
 
         {/* ===== LIGNE JOUEUR (bas) : perso a gauche · animal au centre · barre a droite ===== */}
         {/* ton perso en bas a gauche, vue aux genoux */}

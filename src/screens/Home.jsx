@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { CREATURES, CARDS, BUDGET, DECK_SIZE } from '../data/cards.js'
 import { IMG } from '../assets/images.js'
+import { VERSION } from '../version.js'
 import { supabase, online } from '../lib/supabase.js'
 import { getSetting } from '../lib/settings.js'
 
@@ -66,6 +67,7 @@ export default function Home({ auth, ld, go, onFight, onOnline, onJoin }){
         </button>
         <button className="link" onClick={()=>setPlayOpen(false)}>◀ Retour</button>
       </>}
-    </div>
+      <div className="verfoot">v{VERSION}</div>
+      </div>
   )
 }
