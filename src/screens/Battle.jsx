@@ -1,6 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { CREATURES, SODA_MAX, FOOD_CAP, HAND_DRAW, FAMILIES, suggestedDeck } from '../data/cards.js'
 import * as E from '../game/engine.js'
+import { petSpells, spellReady, spellCostLabel } from '../data/petSpells.js'
 import { aiChooseAction, aiPocketChoices } from '../game/ai.js'
 import { actionArt } from '../game/actionArt.js'
 import { IMG } from '../assets/images.js'
@@ -215,6 +216,19 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
     const n = s===G.me ? G.opp : G.me
     if(n===G.me) G.turn++
     startTurn(n)
+  }
+
+  function castPetSpell(sp){
+    const G=g.current; if(G.busy || G.active!==G.me || G.over) return
+    const me=G.me, foe=G.opp
+    if(!spellReady(me, sp)){ setTryMsg('Ressource insuffisante'); return }
+    const r = E.applyPetSpell(me, foe, sp, G.rng)
+    if(!r.ok){ setTryMsg('Ressource insuffisante'); return }
+    fx.current?.sfx('card')
+    say(`${me.cr.n} — ${sp.name} : ${r.texts.join(', ')}`)
+    LOG('petSpell', sp.id, sp.name, r.texts.join('|'))
+    if(foe.hp<=0 && !G.over){ G.result = true; if(onGameOver) onGameOver() }
+    force()
   }
 
   async function playCard(s, c, from){
@@ -449,14 +463,17 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
         <div className="spellbar">
           {(()=>{ const a=spriteFor('familiers',me.key,'select'); return <img className="spellpet" src={a.src} onError={onSpriteError(a.fallback)} alt={me.cr.n}/> })()}
           <div className="spelllist">
-            {[1,2,3].map(n=>(
-              <div className="spellrow" key={n}>
-                <button className="spellbtn" disabled title="(bientot) sort du familier">
-                  <span className="scost">💠</span><span className="sname">Cout picto + Nom du sort {n}</span>
-                </button>
-                <button className="spellinfo" onClick={()=>setSpellInfo(n)} title="Infos">?</button>
-              </div>
-            ))}
+            {petSpells(me.key).map((sp,idx)=>{
+              const ready = mine && !G.busy && spellReady(me, sp)
+              return (
+                <div className="spellrow" key={sp.id+idx}>
+                  <button className={'spellbtn'+(ready?' ready':'')} disabled={!ready} onClick={()=>castPetSpell(sp)}>
+                    <span className="scost">{spellCostLabel(sp)}</span><span className="sname">{sp.name}</span>
+                  </button>
+                  <button className="spellinfo" onClick={()=>setSpellInfo(sp)} title="Infos">?</button>
+                </div>
+              )
+            })}
           </div>
         </div>
 
@@ -478,7 +495,8 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
         {/* Preview AGRANDI de la carte selectionnee (poche OU main). Suit le doigt pendant le drag. */}
         {selCard && mine && !G.busy && (
           <div className={'cardpreview'+(drag&&drag.moved?' dragging':'')}
-               style={drag&&drag.moved?{left:drag.x,top:drag.y,transform:'translate(-50%,-50%) scale(1.15)'}:undefined}>
+               style={drag&&drag.moved?{left:drag.x,top:drag.y,transform:'translate(-50%,-50%) scale(1.15)'}:undefined}
+               onClick={()=>{ g.current.sel=null; setTryMsg(''); force() }}>
             <Card card={CARD(selCard)} side={me}/>
           </div>
         )}
@@ -501,8 +519,9 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
       {/* INFO sort du familier (plein ecran, placeholder — contenu reel a l'etape 2) */}
       {spellInfo && <div className="cardzoom" onClick={()=>setSpellInfo(null)}>
         <div className="spellinfobox" onClick={e=>e.stopPropagation()}>
-          <h3>Sort {spellInfo}</h3>
-          <p>Les sorts du familier arrivent a la prochaine etape : chacun aura un cout en ressource (confiance / agressivite / special), des conditions de declenchement et un effet.</p>
+          <h3>{spellInfo.icon} {spellInfo.name}</h3>
+          <p className="spellcostline">Cout : {spellCostLabel(spellInfo)}</p>
+          <p>{spellInfo.txt}</p>
           <button className="big" onClick={()=>setSpellInfo(null)}>Fermer</button>
         </div>
       </div>}

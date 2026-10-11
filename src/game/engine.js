@@ -93,10 +93,11 @@ export function paForTurn(s){ return Math.min(PA_MAX, PA_START + (s.fx.paBonus||
 export function aggroMul(s){ return 1 + AGGRO_DMG*(s.aggro||0) }
 // Esquive = ecart de rapidite des FAMILIERS, +10%/point, max 80%.
 export function dodgeChance2(atk, def){
-  if(hasTrait(atk,'enorme')) return 0
+  if(hasTrait(atk,'enorme') && !(def.fx&&def.fx.dodgeBoost)) return 0
   let p = (spd(def)-spd(atk))*0.10
   if(hasTrait(def,'minuscule')) p += 0.10
-  return Math.min(0.80, Math.max(0, p))
+  if(def.fx && def.fx.dodgeBoost) p = Math.max(p*2, 0.5)   // Caprice : esquive doublee (min 50%)
+  return Math.min(0.90, Math.max(0, p))
 }
 // Confiance -> variation. type 'calin' (+conf) ou 'brime' (+conf +aggro).
 export function addConfidence(s, amount, alsoAggro){
@@ -188,6 +189,32 @@ export function resolveSpell(attacker, target, card, rng, overrideTarget){
   return res
 }
 
+export function applyPetSpell(caster, foe, sp, rng){
+  // Verifie et CONSOMME la ressource, puis applique l'effet. Retourne {ok, texts:[]}.
+  const res={ ok:false, texts:[], fx:sp.name }
+  // --- cout / seuil ---
+  if(sp.res==='conf'){ if((caster.conf||0)<sp.need) return res; caster.conf=Math.max(0,caster.conf-sp.cost) }
+  else if(sp.res==='aggro'){ if((caster.aggro||0)<sp.need) return res; caster.aggro=Math.max(0,caster.aggro-sp.cost) }
+  else if(sp.res==='hp'){ if((caster.hp||0)<=sp.cost) return res; caster.hp=Math.max(1,caster.hp-sp.cost); res.texts.push('sacrifie '+sp.cost+' PV') }
+  else if(sp.res==='mix'){ if((caster.conf||0)<30||(caster.aggro||0)<2) return res; caster.conf=Math.max(0,caster.conf-30); caster.aggro=Math.max(0,caster.aggro-2) }
+  else return res
+  res.ok=true
+  // --- effets ---
+  if(sp.heal){ const before=caster.hp; caster.hp=Math.min(caster.max, caster.hp+sp.heal); const g=caster.hp-before; if(g>0) res.texts.push('+'+g+' PV familier') }
+  if(sp.healPhp){ const b=caster.php; caster.php=Math.min(caster.phpMax, caster.php+sp.healPhp); const g=caster.php-b; if(g>0) res.texts.push('+'+g+' PV perso') }
+  if(sp.dmg){
+    // degats au familier adverse : esquive possible, bonus d'agressivite applique
+    if(rng()<dodgeChance2(caster, foe)){ res.texts.push('ESQUIVE') }
+    else {
+      let dmg=Math.round(sp.dmg*aggroMul(caster))
+      if(foe.shield){ const a=Math.min(foe.shield,dmg); foe.shield-=a; dmg-=a; if(a) res.texts.push('bouclier -'+a) }
+      foe.hp=Math.max(0, foe.hp-dmg); res.texts.push(dmg+' degats')
+    }
+  }
+  if(sp.dodgeBoost){ caster.fx=caster.fx||{}; caster.fx.dodgeBoost=1; res.texts.push('esquive doublee ce tour') }
+  return res
+}
+
 export function startTurnEffects(s, rng){
   const ev=[]
   s.food=s.foodMax; s.foodPlayed=false
@@ -204,7 +231,7 @@ export function startTurnEffects(s, rng){
   if(s.fx.stun){ s.fx.stun=0; ev.push({type:'stun'}) }
   return ev
 }
-export function endTurnEffects(s){ for(const k of ['eyes','slow','fear','haste']) if(s.fx[k]) s.fx[k]--; s.fx.paBonus=0 }
+export function endTurnEffects(s){ for(const k of ['eyes','slow','fear','haste']) if(s.fx[k]) s.fx[k]--; s.fx.paBonus=0; s.fx.dodgeBoost=0 }
 
 // Une carte consomme un POINT D'ACTION si elle implique le LANCEUR (perso) :
 // nourriture, soda, et sorts qui ne ciblent PAS uniquement le familier (self/pote/perso/choose).
