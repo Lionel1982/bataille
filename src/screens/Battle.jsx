@@ -313,14 +313,12 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
           <div className="hpbar perso"><div className="hpfill" style={{width:(opp.php/opp.phpMax*100)+'%',background:'#ff7043'}}/></div>
           <div className="top" style={{marginTop:2}}><span>{opp.cr.n.toUpperCase()} {FAMILIES[opp.cr.f].i}</span><span>{opp.hp}/{opp.max}</span></div>
           <div className="hpbar"><div className="hpfill" style={{width:(opp.hp/opp.max*100)+'%',background:hpCol(opp)}}/></div>
-          {accBar(opp)}
-          {spdBar(opp)}
-          {gauges(opp)}
+          {/* Stats ennemi masquees (precision/vitesse/confiance/agressivite) : on ne garde que vie, PA et bonus/malus */}
           <div className="st">🍖{opp.food}/{opp.foodMax} 👖{opp.back.length} {statusTxt(opp)}</div>
         </div>
         {/* perso adverse en haut a droite */}
-        <div className="ent" id="oppPote" style={{right:4,top:4,left:'auto',width:120,height:170}}>
-          {(()=>{ const a=spriteFor('avatars',opp.avatar,'front'); return <img className="avspr" src={a.src} onError={onSpriteError(a.fallback)} style={{width:118}} alt=""/> })()}
+        <div className="ent" id="oppPote" style={{right:2,top:2,left:'auto',width:150,height:210}}>
+          {(()=>{ const a=spriteFor('avatars',opp.avatar,'front'); return <img className="avspr" src={a.src} onError={onSpriteError(a.fallback)} style={{width:148}} alt=""/> })()}
           {opp.front.length>0 && <div className="oppfrontcard" style={{left:-4,top:44,fontSize:22}} onClick={()=>setZoomCard(opp.front[0])}>🂠</div>}
         </div>
         {/* animal adverse : vers le centre (un peu a gauche du milieu), regarde a droite... vers le bas */}
