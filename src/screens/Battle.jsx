@@ -5,7 +5,7 @@ import { aiChooseAction, aiPocketChoices } from '../game/ai.js'
 import { actionArt } from '../game/actionArt.js'
 import { IMG } from '../assets/images.js'
 import { supabase, online } from '../lib/supabase.js'
-import { openMatchChannel, sendAction, firstPlayerIsHost } from '../lib/online.js'
+import { openMatchChannel, sendAction, firstPlayerIsHost, fetchMatch } from '../lib/online.js'
 import { awardPoints } from '../lib/economy.js'
 import { getSetting } from '../lib/settings.js'
 import Sprite from '../components/Sprite.jsx'
@@ -43,28 +43,10 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
 
     if(netMatch){
       // ===== MODE EN LIGNE : l'adversaire est un HUMAIN =====
-      const m = netMatch.match
-      const oppCfgRaw = netMatch.role==='host' ? m.guest_deck : m.host_deck
-      const oppLoadout = oppCfgRaw && oppCfgRaw.pet ? oppCfgRaw : { pet:'chien', cards:{} }
-      let oppCards = oppLoadout.cards || oppLoadout.deck || {}
-      if(Object.values(oppCards).reduce((a,b)=>a+b,0) < 10) oppCards = suggestedDeck(CREATURES[oppLoadout.pet].f)
-      const opp = E.makeSide({ ...oppLoadout, cards:oppCards, name: oppLoadout.name||'Adversaire' }, false, rng)
-      // qui commence : tirage au sort partage (meme resultat des 2 cotes)
-      const hostFirst = firstPlayerIsHost(m.id)
-      const iStart = (netMatch.role==='host') === hostFirst
-      LOG('🌐 EN LIGNE — role', netMatch.role, '| je commence :', iStart)
-      g.current = { rng, me, opp, turn:1, active:null, busy:true, sel:null, over:false, net:true, role:netMatch.role, matchId:m.id, remoteReady:false }
-      // ouvrir le canal temps reel
-      if(closeChan.current) closeChan.current()
-      closeChan.current = openMatchChannel(m.id, {
-        onAction: handleRemoteAction,
-        onPresence: (n)=>{ LOG('presence online:', n) }
-      })
-      force()
-      if(iStart){ say('🌐 Connexion… tu commences dans un instant'); setTimeout(()=>startTurn(me), 1500) }
-      else { say('🌐 Partie en ligne — ton adversaire commence…'); waitRemoteTurn() }
+      startOnline(me, rng)
       return
     }
+
 
     // ===== MODE SOLO (vs IA) =====
     const petKeys = Object.keys(CREATURES)
@@ -77,6 +59,32 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
   // deck IA : on importe suggestedDeck proprement
   function oppDeck(pet){
     return suggestedDeck(CREATURES[pet].f)
+  }
+
+  // Demarrage d'une partie EN LIGNE : recharge le match (2 decks surs), construit l'adversaire humain,
+  // ouvre le canal temps reel, applique le tirage au sort.
+  async function startOnline(me, rng){
+    let m = netMatch.match
+    // recharger pour etre sur d'avoir guest_deck ET host_deck a jour
+    try{ const fresh = await fetchMatch(m.id); if(fresh) m = fresh }catch(e){ LOG('fetchMatch err', e.message) }
+    const oppRaw = netMatch.role==='host' ? m.guest_deck : m.host_deck
+    const oppLoadout = (oppRaw && oppRaw.pet) ? oppRaw : { pet:'chien', avatar:'h2', deck:{} }
+    let oppCards = oppLoadout.deck || oppLoadout.cards || {}
+    if(Object.values(oppCards).reduce((a,b)=>a+b,0) < 10) oppCards = suggestedDeck(CREATURES[oppLoadout.pet].f)
+    const opp = E.makeSide({ ...oppLoadout, cards:oppCards, name: oppLoadout.name||'Adversaire' }, false, rng)
+    LOG('🌐 adversaire charge :', opp.cr.n, 'avatar', opp.avatar, 'deck', opp.deck.length)
+    const hostFirst = firstPlayerIsHost(m.id)
+    const iStart = (netMatch.role==='host') === hostFirst
+    LOG('🌐 role', netMatch.role, '| je commence :', iStart)
+    g.current = { rng, me, opp, turn:1, active:null, busy:true, sel:null, over:false, net:true, role:netMatch.role, matchId:m.id }
+    if(closeChan.current) closeChan.current()
+    closeChan.current = openMatchChannel(m.id, {
+      onAction: handleRemoteAction,
+      onPresence: (n)=>LOG('presence online:', n)
+    })
+    force()
+    if(iStart){ say('🌐 Connexion… tu commences'); setTimeout(()=>startTurn(me), 1500) }
+    else { say('🌐 Ton adversaire commence…'); waitRemoteTurn() }
   }
 
   // ===== SYNCHRO EN LIGNE =====
@@ -144,7 +152,7 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
   function waitRemoteTurn(){ const G=g.current; if(!G)return; G.active=G.opp; G.busy=true; force() }
 
   // Envoi d'une action que JE viens de faire (pour que l'autre la rejoue).
-  function emit(kind, extra){ if(g.current&&g.current.net){ sendAction({ kind, ...extra }) } }
+  function emit(kind, extra){ if(g.current&&g.current.net){ LOG('⇒ EMIT', kind, extra&&extra.key?extra.key:''); sendAction({ kind, ...extra }) } }
 
 
   const spd=E.spd
@@ -313,7 +321,7 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
           {opp.front.length>0 && <div className="oppfrontcard" style={{left:-4,top:44,fontSize:22}} onClick={()=>setZoomCard(opp.front[0])}>🂠</div>}
         </div>
         {/* animal adverse : vers le centre (un peu a gauche du milieu), regarde a droite... vers le bas */}
-        <Sprite side={opp} id="oppPet" style={{right:96,top:40,left:'auto',width:120,height:120}} scale={0.72}/>
+        <Sprite side={opp} id="oppPet" style={{right:96,top:40,left:'auto',width:120,height:120,zIndex:9}} scale={0.72}/>
 
         {/* ===== LIGNE JOUEUR (bas) : perso a gauche · animal au centre · barre a droite ===== */}
         {/* ton perso en bas a gauche, vue aux genoux */}
@@ -321,7 +329,7 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
           <img className="spr avatarknee" src={IMG.avatarKnee[me.avatar]} alt="" style={{maxHeight:'none'}}/>
         </div>
         {/* ton animal : a droite de ton perso, vers le centre, face a l'animal adverse */}
-        <Sprite side={me} id="myPet" style={{left:140,top:152,width:150,height:160,zIndex:7}} scale={0.99} mine/>
+        <Sprite side={me} id="myPet" style={{left:140,top:152,width:150,height:160,zIndex:9}} scale={0.99} mine/>
 
         {/* ressources : en bas a gauche, sous ton perso */}
         <div className="res" style={{top:'auto',bottom:6,left:6}}>

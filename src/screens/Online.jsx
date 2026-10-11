@@ -33,7 +33,7 @@ export default function Online({ auth, loadout, onStart, onBack, startMode='menu
   async function host(){
     setErr(''); setBusy(true)
     try{
-      const m=await createMatch(loadout.deck)
+      const m=await createMatch(loadout)
       setCode(m.code); setMode('hosting')
       // attendre que quelqu'un rejoigne
       unsub.current=subscribeMatch(m.id, (row)=>{
@@ -45,7 +45,7 @@ export default function Online({ auth, loadout, onStart, onBack, startMode='menu
   async function join(){
     setErr(''); setBusy(true)
     try{
-      const m=await joinMatch(input, loadout.deck)
+      const m=await joinMatch(input, loadout)
       onStart(m, 'guest')
     }catch(e){ setErr(e.message||'Erreur') }
     setBusy(false)

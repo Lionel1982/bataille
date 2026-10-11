@@ -14,7 +14,7 @@ function makeCode(){
 }
 
 // Cree une partie : je deviens l'hote, j'obtiens un code a partager.
-export async function createMatch(myDeck){
+export async function createMatch(myLoadout){
   if(!online) throw new Error('offline')
   const { data:{ user } } = await supabase.auth.getUser()
   if(!user) throw new Error('non connecte')
@@ -22,7 +22,7 @@ export async function createMatch(myDeck){
   for(let tries=0; tries<6; tries++){
     const code=makeCode()
     const { data, error } = await supabase.from('matches').insert({
-      status:'waiting', host:user.id, host_deck:myDeck, code
+      status:'waiting', host:user.id, host_deck:myLoadout, code
     }).select().single()
     if(!error){ LOG('createMatch OK code=',code,'id=',data.id); return data }
     if(error && !/duplicate|unique/i.test(error.message)){ LOG('createMatch err',error); throw error }
@@ -31,7 +31,7 @@ export async function createMatch(myDeck){
 }
 
 // Rejoindre une partie par code : je deviens guest.
-export async function joinMatch(code, myDeck){
+export async function joinMatch(code, myLoadout){
   if(!online) throw new Error('offline')
   const { data:{ user } } = await supabase.auth.getUser()
   if(!user) throw new Error('non connecte')
@@ -41,7 +41,7 @@ export async function joinMatch(code, myDeck){
   if(e1) throw e1
   if(!found) throw new Error('Aucune partie en attente avec ce code')
   const { data, error } = await supabase.from('matches')
-    .update({ guest:user.id, guest_deck:myDeck, status:'playing' })
+    .update({ guest:user.id, guest_deck:myLoadout, status:'playing' })
     .eq('id',found.id).eq('status','waiting').select().single()
   if(error) throw error
   LOG('joinMatch OK id=',data.id); return data
