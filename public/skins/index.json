@@ -8,7 +8,19 @@
         "back",
         "defeated",
         "select"
-      ]
+      ],
+      "character": "alex"
+    },
+    {
+      "slug": "Akhenat",
+      "name": "Akhenat",
+      "views": [
+        "front",
+        "back",
+        "defeated",
+        "select"
+      ],
+      "character": "akhenat"
     }
   ]
 }

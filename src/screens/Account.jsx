@@ -4,7 +4,7 @@ import { getSetting, setSetting } from '../lib/settings.js'
 import { debugAddPoints } from '../lib/economy.js'
 
 // Ecran "Mon compte" : connexion/deconnexion + acces classement + options debug.
-export default function Account({ auth, onBack, onLogin, onLeaderboard, onSkins }){
+export default function Account({ auth, onBack, onLogin, onLeaderboard }){
   const [,force] = useState(0)
   const [msg,setMsg] = useState('')
   const connected = online && auth.session
@@ -37,9 +37,6 @@ export default function Account({ auth, onBack, onLogin, onLeaderboard, onSkins 
 
         <h2 className="s2h2">🏆 Classement</h2>
         <button className="big alt2" onClick={onLeaderboard}>Voir le classement</button>
-
-        <h2 className="s2h2">🎭 Personnalisation</h2>
-        <button className="big alt2" onClick={onSkins}>Gérer mes skins</button>
 
         <h2 className="s2h2">🛠️ Options (debug)</h2>
         <div className="optline"><span>Autoriser deck incomplet</span>

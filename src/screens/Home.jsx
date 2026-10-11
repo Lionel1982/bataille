@@ -4,6 +4,7 @@ import { IMG } from '../assets/images.js'
 import { VERSION } from '../version.js'
 import { supabase, online } from '../lib/supabase.js'
 import { getSetting } from '../lib/settings.js'
+import { charPortrait } from '../lib/skins.js'
 
 // Ecran d'accueil : 4 tuiles (Jouer / Avatar / Familier / Deck).
 // 'Jouer' ouvre un sous-menu : Creer / Rejoindre / IA.
@@ -41,7 +42,7 @@ export default function Home({ auth, ld, go, onFight, onOnline, onJoin, resumabl
         </button>
         <div className="tilerow">
           <button className="tile" onClick={()=>go('avatar')}>
-            <img className="tileimg" src={IMG.avatarFull[b.avatar]} alt=""/><span className="tl">AVATAR</span>
+            <img className="tileimg" src={charPortrait(b.avatar)||IMG.avatarFull[b.avatar]||IMG.avatarFull.h1} alt=""/><span className="tl">AVATAR</span>
           </button>
           <button className="tile" onClick={()=>go('familier')}>
             <img className="tileimg" src={IMG.anim[b.pet]} alt=""/><span className="tl">FAMILIER</span>

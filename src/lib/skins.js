@@ -1,14 +1,15 @@
 // ============================================================
-//  Systeme de SKINS nommes librement + assignation par emplacement.
-//  - Les skins sont decrits dans public/skins/index.json (manifeste).
-//  - Fichiers : public/skins/<slug>/<vue>.png  (vues: front/back/defeated/select)
-//  - L'utilisateur assigne un skin a un emplacement d'avatar (h1..f3)
-//    ou le definit comme DEFAUT GLOBAL. Assignations persistees en localStorage.
-//  - Rien n'est ecrase : les images integrees restent le repli.
+//  SKINS = apparences (4 vues) appartenant a un PERSONNAGE.
+//  - Manifeste : public/skins/index.json -> [{ slug, name, views, character }]
+//  - Fichiers : public/skins/<slug>/<vue>.png
+//  - Chaque personnage (data/characters.js) a un skin par DEFAUT, mais la
+//    liaison est REASSIGNABLE a l'execution (surcharge persistee en localStorage).
 // ============================================================
-const LS='bdp_skins_v1'   // { byAvatar:{h1:'slug',...}, def:'slug'|null }
+import { CHARACTERS } from '../data/characters.js'
 
-let MANIFEST = { skins: [] }   // { slug, name, views:['front',...] }[]
+const LS='bdp_charskin_v1'   // { <charId>: '<slug>' }  surcharge du skin par defaut
+
+let MANIFEST = { skins: [] }
 let LOADED = false
 
 export async function loadManifest(){
@@ -22,28 +23,38 @@ export async function loadManifest(){
 }
 export function allSkins(){ return MANIFEST.skins || [] }
 export function skinBySlug(slug){ return (MANIFEST.skins||[]).find(s=>s.slug===slug) || null }
-
-function readAssign(){ try{ return JSON.parse(localStorage.getItem(LS)) || {byAvatar:{},def:null} }catch{ return {byAvatar:{},def:null} } }
-let ASSIGN = readAssign()
-function saveAssign(){ localStorage.setItem(LS, JSON.stringify(ASSIGN)) }
-
-export function getAssignments(){ return { byAvatar:{...ASSIGN.byAvatar}, def:ASSIGN.def } }
-export function assignToAvatar(avatarKey, slugOrNull){
-  ASSIGN = { ...ASSIGN, byAvatar: { ...ASSIGN.byAvatar } }
-  if(slugOrNull) ASSIGN.byAvatar[avatarKey] = slugOrNull
-  else delete ASSIGN.byAvatar[avatarKey]
-  saveAssign(); return getAssignments()
+// Skins compatibles avec un personnage (ceux qui lui appartiennent + ceux sans proprietaire).
+export function skinsForCharacter(charId){
+  return (MANIFEST.skins||[]).filter(s=> s.character===charId || !s.character)
 }
-export function setDefaultSkin(slugOrNull){ ASSIGN = { ...ASSIGN, def: slugOrNull||null }; saveAssign(); return getAssignments() }
 
-// Quel skin s'applique a cet emplacement d'avatar ? (precis > defaut global > aucun)
-export function skinForAvatar(avatarKey){
-  const slug = (ASSIGN.byAvatar && ASSIGN.byAvatar[avatarKey]) || ASSIGN.def || null
-  return slug ? skinBySlug(slug) : null
+function readOv(){ try{ return JSON.parse(localStorage.getItem(LS)) || {} }catch{ return {} } }
+let OVERRIDE = readOv()
+function saveOv(){ localStorage.setItem(LS, JSON.stringify(OVERRIDE)) }
+
+// Quel skin (slug) utilise ce personnage ? surcharge > defaut du perso > null
+export function skinSlugForCharacter(charId){
+  if(OVERRIDE[charId]) return OVERRIDE[charId]
+  const c = CHARACTERS[charId]
+  return c ? (c.skin||null) : null
 }
-// URL d'une vue de skin si le skin la possede, sinon null.
-export function skinViewUrl(avatarKey, view){
-  const sk = skinForAvatar(avatarKey)
-  if(sk && (sk.views||[]).includes(view)) return '/skins/'+sk.slug+'/'+view+'.png'
+// Reassigner le skin d'un personnage (null = revenir au defaut).
+export function setCharacterSkin(charId, slugOrNull){
+  OVERRIDE = { ...OVERRIDE }
+  if(slugOrNull) OVERRIDE[charId] = slugOrNull
+  else delete OVERRIDE[charId]
+  saveOv(); return { ...OVERRIDE }
+}
+export function getOverrides(){ return { ...OVERRIDE } }
+
+// Portrait d'un personnage : vue 'select' de son skin courant (ou null).
+export function charPortrait(charId){ return charViewUrl(charId,'select') }
+
+// URL d'une vue pour un PERSONNAGE (via son skin courant), si la vue existe.
+export function charViewUrl(charId, view){
+  const slug = skinSlugForCharacter(charId)
+  if(!slug) return null
+  const sk = skinBySlug(slug)
+  if(sk && (sk.views||[]).includes(view)) return '/skins/'+slug+'/'+view+'.png'
   return null
 }

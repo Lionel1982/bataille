@@ -52,7 +52,9 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
     // ===== MODE SOLO (vs IA) =====
     const petKeys = Object.keys(CREATURES)
     const oppPet = petKeys[Math.floor(rng()*petKeys.length)]
-    const opp = E.makeSide({ pet:oppPet, avatar:'h2', top:'chemisette', bottom:'jean', cards: oppDeck(oppPet), name:'Alex' }, false, rng)
+    const oppChars = ['akhenat','alex','h2']   // l'IA peut incarner un vrai perso (skin visible en face)
+    const oppAv = oppChars[Math.floor(rng()*oppChars.length)]
+    const opp = E.makeSide({ pet:oppPet, avatar:oppAv, top:'chemisette', bottom:'jean', cards: oppDeck(oppPet), name: oppAv==='akhenat'?'Akhenat':(oppAv==='alex'?'Alex El-Rien':'Alex') }, false, rng)
     g.current = { rng, me, opp, turn:1, active:null, busy:true, sel:null, over:false, net:false }
     force()
     startTurn(me)
