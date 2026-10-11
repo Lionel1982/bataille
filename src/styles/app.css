@@ -371,3 +371,8 @@ img{max-width:100%}
 .smallbtn{font-family:'Bangers';font-size:13px;border:2px solid #111;border-radius:9px;padding:4px 12px;background:#ffd633}
 .smallbtn.danger{background:#ff8a80}
 .smallbtn:disabled{opacity:.5}
+
+/* barre d'acces en haut de l'accueil */
+.hometop{display:flex;gap:6px;width:100%;max-width:340px;margin-bottom:2px}
+.hometop button{flex:1;font-family:'Bangers';font-size:12px;border:3px solid #111;border-radius:12px;padding:6px 4px;background:#fff;box-shadow:2px 2px 0 #111;cursor:pointer}
+.hometop button:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #111}

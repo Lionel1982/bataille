@@ -7,6 +7,7 @@ import { getSetting } from '../lib/settings.js'
 // Ecran d'accueil : 4 tuiles (Jouer / Avatar / Familier / Deck).
 // 'Jouer' ouvre un sous-menu : Creer / Rejoindre / IA.
 export default function Home({ auth, ld, go, onFight, onOnline, onJoin }){
+  const connected = auth.online && auth.session
   const { b } = ld
   const [playOpen,setPlayOpen] = useState(false)
 
@@ -25,6 +26,11 @@ export default function Home({ auth, ld, go, onFight, onOnline, onJoin }){
 
   return (
     <div className="home">
+      <div className="hometop">
+        <button onClick={()=>go('account')}>👤 {connected?(auth.profile?.pseudo||'Compte'):'Compte'}</button>
+        <button onClick={()=>go('lead')}>🏆 Classement</button>
+        <button onClick={()=>go('shop')}>🛒 Boutique</button>
+      </div>
       <h1 className="hometitle">BATAILLE<br/>DE PO/ETS</h1>
 
       {!playOpen ? <>

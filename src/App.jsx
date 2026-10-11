@@ -24,18 +24,9 @@ export default function App(){
   if(screen==='auth') return <div className="phone"><Auth auth={auth} onBack={()=>setScreen('home')} /></div>
 
   const connected = auth.online && auth.session
-  const showBar = ['home','lead','shop'].includes(screen)
   return (
     <div className="phone">
-      {showBar && (
-        <div className="topbar">
-          <button onClick={()=>setScreen('home')}>🏠 Accueil</button>
-          <button onClick={()=>setScreen('lead')}>🏆 Classement</button>
-          <button onClick={()=>setScreen('shop')}>🛒 Boutique</button>
-          <button onClick={()=>setScreen('account')}>👤 {connected?(auth.profile?.pseudo||'Compte'):'Compte'}</button>
-        </div>
-      )}
-
+      
       {screen==='home' && <Home auth={auth} ld={ld} go={setScreen}
         onFight={(cfg)=>{ setLoadout(cfg); setNetMatch(null); setScreen('battle') }}
         onOnline={(cfg)=>{ setLoadout(cfg); setOnlineMode('create'); setScreen('online') }}
