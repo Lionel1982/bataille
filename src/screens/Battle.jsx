@@ -27,6 +27,8 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
   const [zoomCard,setZoomCard] = useState(null)
   const [paused,setPaused] = useState(false)
   const [fast,setFast] = useState(false)
+  const [petState,setPetState] = useState(0)   // clic familier : 0 opaque / 1 transparent / 2 derriere stats
+  const [spellInfo,setSpellInfo] = useState(null)   // ? d'un sort -> info plein ecran (placeholder)
   const pausedRef=useRef(false), fastRef=useRef(false)
   pausedRef.current=paused; fastRef.current=fast
   const closeChan = useRef(null)
@@ -307,33 +309,39 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
       <div className="scene" id="scene">
         <div className="sky"/><div className="house h1"/><div className="house h2"/><div className="house h3"/><div className="road"/>
 
-        {/* ===== LIGNE ADVERSAIRE (haut) : barre a gauche · animal au centre · perso a droite ===== */}
+        {/* ===== BOX NORMALISEES (carre 512 source, mises a l'echelle) =====
+            Joueur : box collee au BORD GAUCHE. Adversaire : box collee au BORD DROIT.
+            Box familier accolee au cote interieur de la box perso, BAS ALIGNE. ===== */}
+
+        {/* --- LIGNE ADVERSAIRE (haut) --- */}
         <div className="hpbox" style={{left:6,top:6,width:176}}>{paGauge(opp,'right')}
           <div className="top"><span>{opp.name} 🧑</span><span>❤️{opp.php}/{opp.phpMax}</span></div>
           <div className="hpbar perso"><div className="hpfill" style={{width:(opp.php/opp.phpMax*100)+'%',background:'#ff7043'}}/></div>
           <div className="top" style={{marginTop:2}}><span>{opp.cr.n.toUpperCase()} {FAMILIES[opp.cr.f].i}</span><span>{opp.hp}/{opp.max}</span></div>
           <div className="hpbar"><div className="hpfill" style={{width:(opp.hp/opp.max*100)+'%',background:hpCol(opp)}}/></div>
-          {/* Stats ennemi masquees (precision/vitesse/confiance/agressivite) : on ne garde que vie, PA et bonus/malus */}
           <div className="st">🍖{opp.food}/{opp.foodMax} 👖{opp.back.length} {statusTxt(opp)}</div>
         </div>
-        {/* perso adverse en haut a droite */}
-        <div className="ent" id="oppPote" style={{right:2,top:2,left:'auto',width:150,height:210}}>
-          {(()=>{ const a=spriteFor('avatars',opp.avatar,'front'); return <img className="avspr" src={a.src} onError={onSpriteError(a.fallback)} style={{width:148}} alt=""/> })()}
-          {opp.front.length>0 && <div className="oppfrontcard" style={{left:-4,top:44,fontSize:22}} onClick={()=>setZoomCard(opp.front[0])}>🂠</div>}
+        {/* perso adverse : box CARREE collee au BORD DROIT, bas de la rangee haute */}
+        <div className="pbox opp" id="oppPote">
+          {(()=>{ const a=spriteFor('avatars',opp.avatar,'front'); return <img className="avspr" src={a.src} onError={onSpriteError(a.fallback)} alt=""/> })()}
+          {opp.front.length>0 && <div className="oppfrontcard" onClick={()=>setZoomCard(opp.front[0])}>🂠</div>}
         </div>
-        {/* animal adverse : vers le centre (un peu a gauche du milieu), regarde a droite... vers le bas */}
-        <Sprite side={opp} id="oppPet" style={{right:120,top:46,left:'auto',width:120,height:120,zIndex:9}} scale={0.7}/>
+        {/* familier adverse : accole au cote GAUCHE de la box adverse, bas aligne */}
+        <Sprite side={opp} id="oppPet" style={{right:'var(--pbox)',bottom:'calc(50% + 2px)',left:'auto',top:'auto',width:120,height:120,zIndex:9}} scale={0.7}/>
 
-        {/* ===== LIGNE JOUEUR (bas) : perso a gauche · animal au centre · barre a droite ===== */}
-        {/* ton perso en bas a gauche, vue aux genoux */}
-        <div className="ent" id="myPote" style={{left:2,top:120,width:200,height:230,zIndex:6,overflow:'visible',alignItems:'flex-end'}}>
-          {(()=>{ const a=spriteFor('avatars',me.avatar,'back'); return <img className="avspr avatarknee" src={a.src} onError={onSpriteError(a.fallback)} alt="" style={{maxHeight:'none'}}/> })()}
+        {/* --- LIGNE JOUEUR (bas) --- */}
+        {/* perso joueur : box CARREE collee au BORD GAUCHE, bas de la scene */}
+        <div className="pbox me" id="myPote">
+          {(()=>{ const a=spriteFor('avatars',me.avatar,'back'); return <img className="avspr" src={a.src} onError={onSpriteError(a.fallback)} alt=""/> })()}
         </div>
-        {/* ton animal : a droite de ton perso, vers le centre, face a l'animal adverse */}
-        <Sprite side={me} id="myPet" style={{left:140,top:152,width:150,height:160,zIndex:9}} scale={0.99} mine/>
+        {/* ton familier : accole au cote DROIT de ta box, bas aligne. Clic = 3 etats (opaque/transparent/derriere). */}
+        <Sprite side={me} id="myPet"
+          className={'petclick pet-st'+petState}
+          onClick={()=>setPetState(s=>(s+1)%3)}
+          style={{left:'var(--pbox)',bottom:6,top:'auto',width:150,height:160,zIndex:petState===2?7:9}} scale={0.99} mine/>
 
-        {/* ressources : en bas a gauche, sous ton perso */}
-        <div className="res" style={{top:'auto',bottom:6,left:6}}>
+        {/* ressources : en bas, decalees apres la box joueur */}
+        <div className="res" style={{top:'auto',bottom:6,left:'calc(var(--pbox) + 6px)'}}>
           <div className="tok" id="tokFood">🍖</div><div className="num">{me.food}<small>/{me.foodMax}</small></div>
           <div className="tok" style={{borderColor:'#ff73c8'}}>🥤</div>
           <div className="pips">{Array.from({length:SODA_MAX},(_,i)=><i key={i} className={i<me.soda?'on':''}/>)}</div>
@@ -359,6 +367,23 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
           <span>{G.msg||''}</span>
           {G._cont && <button id="cont" style={{display:'block'}} onClick={()=>g.current._cont&&g.current._cont()}>SUITE ▶</button>}
         </div>
+
+        {/* ===== BARRE DE SORTS DU FAMILIER (placeholders — etape 2 : logique planeswalker) =====
+            portrait du familier (vue select) + 3 sorts (cout picto + nom) + bouton ? d'info. */}
+        <div className="spellbar">
+          {(()=>{ const a=spriteFor('familiers',me.key,'select'); return <img className="spellpet" src={a.src} onError={onSpriteError(a.fallback)} alt={me.cr.n}/> })()}
+          <div className="spelllist">
+            {[1,2,3].map(n=>(
+              <div className="spellrow" key={n}>
+                <button className="spellbtn" disabled title="(bientot) sort du familier">
+                  <span className="scost">💠</span><span className="sname">Cout picto + Nom du sort {n}</span>
+                </button>
+                <button className="spellinfo" onClick={()=>setSpellInfo(n)} title="Infos">?</button>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="row">
           <div className="stack"><div className="pile">{me.deck.length}</div>Pioche</div>
           <div className="stack"><div className="slots">
@@ -406,6 +431,15 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
 
       {/* zoom carte poche avant adverse */}
       {zoomCard && <div className="cardzoom" onClick={()=>setZoomCard(null)}><Card card={CARD(zoomCard)} side={opp}/></div>}
+
+      {/* INFO sort du familier (plein ecran, placeholder — contenu reel a l'etape 2) */}
+      {spellInfo && <div className="cardzoom" onClick={()=>setSpellInfo(null)}>
+        <div className="spellinfobox" onClick={e=>e.stopPropagation()}>
+          <h3>Sort {spellInfo}</h3>
+          <p>Les sorts du familier arrivent a la prochaine etape : chacun aura un cout en ressource (confiance / agressivite / special), des conditions de declenchement et un effet.</p>
+          <button className="big" onClick={()=>setSpellInfo(null)}>Fermer</button>
+        </div>
+      </div>}
 
       {/* fin de partie */}
       {G.over && G.result!==undefined && (

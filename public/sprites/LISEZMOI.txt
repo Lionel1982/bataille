@@ -36,11 +36,14 @@ NOMMAGE (le nom = la cle utilisee par le jeu) :
                    tortue, poisson, guppy, oiseau, poulet.
   Ids avatars    : h1, h2, h3, f1, f2, f3.
 
-ACTIVER LES VUES DEPOSEES : ouvre src/assets/customSprites.js et declare les
-vues disponibles pour chaque entite, ex :
-  familiers: { chien:['front','back','defeated','select'] }
-  avatars:   { h1:['front','back','defeated','select'] }
-Les vues non deposees retombent sur un placeholder (pas de 404).
+DECOUPE + DECLARATION AUTO (comme les persos) :
+  Planche 4 vues (fond blanc) a decouper pour un familier :
+    py decouper-perso.py planche-chien.png chien --dest familiers --key chien
+  -> ecrit public/sprites/familiers/chien-front.png ... ET declare les vues
+     dans src/assets/customSprites.js tout seul (familiers: { chien:[...] }).
+  Avatars generiques (h1..f3) : --dest avatars --key h1 (nommage avatar-h1-<vue>.png).
+  Les vues non deposees retombent sur l'image integree / placeholder (pas de 404).
+  (Tu peux toujours editer customSprites.js a la main si tu preferes.)
 
 ======================================================================
 DESSINS DE CARTES — planche en grille a decouper
@@ -55,6 +58,17 @@ DESSINS DE CARTES — planche en grille a decouper
    Le script deduit la grille, decoupe, rogne les marges, ecrit
    public/sprites/cartes/<cle>.png ET met a jour src/assets/cardArt.js tout seul.
 4) Les cartes sans dessin gardent leur emoji (repli). Pas de 404.
+
+======================================================================
+DESSINS D'ACTION (animations d'attaque) — par cle de SORT
+======================================================================
+Range : public/sprites/actions/<cle-du-sort>.png   (ex: griffe.png, sumo.png, tsunami.png)
+La cle = la cle du SORT dans CARDS (voir CLES-CARTES.txt). Chaque sort peut avoir
+SON propre dessin ; sans fichier, il retombe sur l'animation integree partagee.
+Apres depot, DECLARE-les :
+  - planche a decouper :  py decouper-actions.py planche.png griffe sumo tsunami [--auto]
+  - fichiers deja decoupes deposes a la main :  py decouper-actions.py --register griffe sumo
+Le script remplit public/sprites/actions/ ET met a jour src/assets/actionArt.js.
 
 PUBLICATION
 -----------

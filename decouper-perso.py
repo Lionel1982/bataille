@@ -72,6 +72,41 @@ def auto_cells(im, tol, n=4):
         for (x0,x1) in cols: cells.append((x0,y0,x1,y1))
     return cells[:n]
 
+
+CUSTOM_JS = os.path.join(HERE,"src","assets","customSprites.js")
+def update_customsprites(kind, key, views):
+    """Met a jour src/assets/customSprites.js : CUSTOM[kind][key] = views, en preservant le reste."""
+    fam={}; ava={}
+    if os.path.exists(CUSTOM_JS):
+        txt=open(CUSTOM_JS,encoding="utf-8").read()
+        # extraire les blocs existants familiers:{...} et avatars:{...}
+        def parse_block(name, s):
+            m=re.search(name+r"\s*:\s*\{(.*?)\}", s, re.S)
+            out={}
+            if m:
+                for km,vm in re.findall(r"(\w+)\s*:\s*\[([^\]]*)\]", m.group(1)):
+                    vlist=[v.strip().strip("'\"") for v in vm.split(',') if v.strip()]
+                    out[km]=vlist
+            return out
+        fam=parse_block("familiers", txt); ava=parse_block("avatars", txt)
+    if kind=="familiers": fam[key]=views
+    elif kind=="avatars": ava[key]=views
+    def dump(d):
+        return ", ".join("%s:[%s]"%(k, ",".join("'%s'"%v for v in vs)) for k,vs in d.items())
+    open(CUSTOM_JS,"w",encoding="utf-8").write(
+        "// Registre des sprites PERSONNALISES deposes dans public/sprites/.\n"
+        "// Pour CHAQUE entite, liste les VUES disponibles (front/back/defeated/select).\n"
+        "// Rempli automatiquement par decouper-perso.py (--dest familiers|avatars).\n"
+        "export const CUSTOM = {\n"
+        "  familiers: { "+dump(fam)+" },\n"
+        "  avatars: { "+dump(ava)+" }\n"
+        "}\n"
+        "export function viewsOf(kind, key){ return (CUSTOM[kind] && CUSTOM[kind][key]) || [] }\n"
+        "export function hasView(kind, key, view){ return viewsOf(kind,key).includes(view) }\n"
+        "export function hasCustom(kind, key){ return viewsOf(kind,key).length>0 }\n")
+    print(f"customSprites.js mis a jour : {kind}.{key} -> {views}")
+
+
 def main():
     args=sys.argv[1:]
     if len(args)<2: print(__doc__); return
@@ -141,7 +176,9 @@ def main():
         json.dump(data,open(MANI,"w",encoding="utf-8"),ensure_ascii=False,indent=2)
         print(f"index.json mis a jour : {len(skins)} skin(s). '{slug}' -> {views}")
     else:
-        print(f"Depose dans public/sprites/{dest}/. Pense a declarer les vues dans customSprites.js")
+        kkey = (key or slug)
+        update_customsprites(dest, kkey, views)
+        print(f"Depose dans public/sprites/{dest}/ et declare dans customSprites.js.")
 
 if __name__=="__main__":
     main()
