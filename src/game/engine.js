@@ -5,6 +5,25 @@
 import { CREATURES, TOPS, BOTTOMS, CARDS, FOODS, SODA_MAX, FOOD_CAP, HAND_DRAW, DECK_SIZE } from '../data/cards.js'
 const ELOG=(...a)=>console.log('%c[ENGINE]','color:#0288d1',...a)
 
+// ===== NOUVEAU SYSTEME (refonte 11 oct) =====
+export const PA_START = 2        // points d'action par tour au depart
+export const PA_MAX = 3          // plafond de PA (via rapidite du perso)
+export const AGGRO_MAX = 5       // crans d'agressivite
+export const AGGRO_DMG = 0.15    // +15% degats par cran
+export const PERSO_HP = 40       // PV de base du personnage (avatar)
+export const CONF_MAX = 100, CONF_START = 50
+export const CONF_LOW = 25       // seuil "confiance basse" -> risque de retournement
+export const TURN_RISK = 0.25    // proba de retournement par tour si confiance basse
+// paliers de precision (bornes basses -> couleur). Valeur % cachee, couleur = avertissement.
+export const ACC_TIERS = [
+  { min:0,  col:'#e53935', name:'tres faible' },
+  { min:25, col:'#8e24aa', name:'faible' },
+  { min:45, col:'#1e88e5', name:'correcte' },
+  { min:65, col:'#00bcd4', name:'bonne' },
+  { min:85, col:'#fdd835', name:'excellente' }
+]
+export function accTier(pct){ let t=ACC_TIERS[0]; for(const x of ACC_TIERS) if(pct>=x.min) t=x; return t }
+
 // --- RNG deterministe (mulberry32) : meme seed => meme partie (utile pour le multi) ---
 export function makeRng(seed){
   let a = seed >>> 0
@@ -53,14 +72,42 @@ export function buildDeckArray(cardsMap, rng){
 }
 export function makeSide(cfg, isMe, rng){
   const cr=CREATURES[cfg.pet], top=TOPS[cfg.top]||TOPS.tshirt, bot=BOTTOMS[cfg.bottom]||BOTTOMS.jean
-  const hp=cr.hp+(top.hp||0)
+  const hp=cr.hp+(top.hp||0)            // PV du FAMILIER
   return {
     isMe, key:cfg.pet, avatar:cfg.avatar, name:cfg.name||(isMe?'Toi':'Adversaire'),
     cr, hp, max:hp, deck:buildDeckArray(cfg.cards||cfg.deck||{}, rng),
     hand:[], discard:[], back:[], front:[], backMax:bot.back, frontMax:top.front,
     food:0, foodMax:0, soda:0, foodPlayed:false, extra:false, shield:0,
-    fx:{ poison:0, eyes:0, slow:0, blind:0, fear:0, work:0, haste:0, stun:0, aim:0 }
+    // --- NOUVEAU ---
+    php: PERSO_HP, phpMax: PERSO_HP,    // PV du PERSONNAGE (avatar)
+    pa: PA_START, paMax: PA_START,      // points d'action (recalcule chaque tour)
+    conf: CONF_START,                   // confiance du familier (0..100)
+    aggro: 0,                           // agressivite (0..AGGRO_MAX)
+    turned: 0,                          // >0 : le familier est retourne (nb de tours)
+    fx:{ poison:0, eyes:0, slow:0, blind:0, fear:0, work:0, haste:0, stun:0, aim:0, paBonus:0, selfPoison:0 }
   }
+}
+// Rapidite du perso -> PA du tour (plafonne a PA_MAX). paBonus vient des cartes (rollers...).
+export function paForTurn(s){ return Math.min(PA_MAX, PA_START + (s.fx.paBonus||0)) }
+// Multiplicateur de degats du familier selon l'agressivite (paliers +15%/cran).
+export function aggroMul(s){ return 1 + AGGRO_DMG*(s.aggro||0) }
+// Esquive = ecart de rapidite des FAMILIERS, +10%/point, max 80%.
+export function dodgeChance2(atk, def){
+  if(hasTrait(atk,'enorme')) return 0
+  let p = (spd(def)-spd(atk))*0.10
+  if(hasTrait(def,'minuscule')) p += 0.10
+  return Math.min(0.80, Math.max(0, p))
+}
+// Confiance -> variation. type 'calin' (+conf) ou 'brime' (+conf +aggro).
+export function addConfidence(s, amount, alsoAggro){
+  s.conf = Math.max(0, Math.min(CONF_MAX, s.conf + amount))
+  if(alsoAggro) s.aggro = Math.min(AGGRO_MAX, s.aggro + 1)
+}
+// Risque de retournement : si confiance basse, proba TURN_RISK chaque debut de tour.
+export function checkTurn(s, rng){
+  if(s.turned>0) return false
+  if(s.conf <= CONF_LOW && rng() < TURN_RISK){ s.turned = 1; return true }
+  return false
 }
 export function drawCards(s, n){
   for(let i=0;i<n;i++){
@@ -83,24 +130,34 @@ export function whyNot(s,c){
 }
 
 // Applique l'effet d'un sort. Retourne un descriptif { dmg, miss, texts[] } pour l'animation cote React.
-export function resolveSpell(attacker, target, card, rng){
-  const d=C(card), bonus=famBonus(attacker,d), mul=bonus?1.5:1
-  const res={ card:d, bonus, miss:false, dmg:0, texts:[], heal:0 }
+export function resolveSpell(attacker, target, card, rng, overrideTarget){
+  const d0=C(card); const d = overrideTarget ? {...d0, target:overrideTarget} : d0
+  const bonus=famBonus(attacker,d), mul=bonus?1.5:1
+  const res={ card:d, bonus, miss:false, dmg:0, texts:[], heal:0, hitPerso:false }
+  // cible : 'pet' = familier adverse (esquivable), 'perso' = l'avatar adverse (non esquivable), 'pote' alias de 'perso'
+  const aimPerso = (d.target==='perso' || d.target==='pote')
   if(d.target==='pet'){
     if(attacker.fx.blind){ attacker.fx.blind=0; if(rng()<0.6){ res.miss='RATE'; } }
-    if(!res.miss && rng()<dodgeChance(attacker,target)){ res.miss='ESQUIVE' }
+    if(!res.miss && rng()<dodgeChance2(attacker,target)){ res.miss='ESQUIVE' }
   }
   if(res.miss) return res
   if(d.dmg){
     let dmg=d.dmg*mul
     if(d.phys) dmg*=attacker.cr.pow
+    dmg*=aggroMul(attacker)                       // agressivite : +15%/cran
     if(hasTrait(attacker,'minuscule')) dmg*=0.75
     if(attacker.fx.fear) dmg/=2
-    if(hasTrait(target,'carapace')) dmg*=0.7
+    if(hasTrait(target,'carapace') && !aimPerso) dmg*=0.7
     dmg=Math.round(dmg)
-    if(target.shield){ const a=Math.min(target.shield,dmg); target.shield-=a; dmg-=a; if(a) res.texts.push('bouclier -'+a) }
-    target.hp=Math.max(0,target.hp-dmg); res.dmg=dmg
-    res.texts.push(dmg+' degats'+(d.phys&&attacker.cr.pow>=1.4?' (gabarit!)':''))
+    if(aimPerso){
+      target.php=Math.max(0,(target.php||0)-dmg); res.hitPerso=true
+      res.texts.push(dmg+' degats au perso')
+    } else {
+      if(target.shield){ const a=Math.min(target.shield,dmg); target.shield-=a; dmg-=a; if(a) res.texts.push('bouclier -'+a) }
+      target.hp=Math.max(0,target.hp-dmg)
+      res.texts.push(dmg+' degats'+(attacker.aggro>=3?' (familier enrage!)':''))
+    }
+    res.dmg=dmg
   }
   if(d.poison){ target.fx.poison=Math.round(d.poison*(mul>1?1.3:1)); res.texts.push('poison '+target.fx.poison+' tours') }
   if(d.eyes){ target.fx.eyes=d.eyes; res.texts.push('sorts +1 cout') }
@@ -114,6 +171,15 @@ export function resolveSpell(attacker, target, card, rng){
   if(d.shield){ attacker.shield+=Math.round(d.shield*mul); res.texts.push('bouclier '+attacker.shield) }
   if(d.haste){ attacker.fx.haste=d.haste; res.texts.push('+2 vitesse') }
   if(d.draw){ drawCards(attacker,d.draw); res.texts.push('pioche '+d.draw) }
+  // --- NOUVEAU : confiance / agressivite / PA ---
+  // Reconfort : +confiance, -agressivite (le familier se calme)
+  if(d.calin){ attacker.conf=Math.max(0,Math.min(CONF_MAX,attacker.conf+d.calin)); attacker.aggro=Math.max(0,attacker.aggro-(d.calmAggro||0)); res.texts.push('+'+d.calin+' confiance'+(d.calmAggro?', -'+d.calmAggro+' agressivite':'')) }
+  // Brimade : +agressivite, -confiance (le familier devient hargneux mais te fait moins confiance)
+  if(d.brime){ attacker.aggro=Math.min(AGGRO_MAX,attacker.aggro+(d.brimeAggro||1)); attacker.conf=Math.max(0,attacker.conf-d.brime); res.texts.push('+'+(d.brimeAggro||1)+' agressivite, -'+d.brime+' confiance') }
+  if(d.aggro){ attacker.aggro=Math.min(AGGRO_MAX, attacker.aggro+d.aggro); res.texts.push('+'+d.aggro+' agressivite') }
+  if(d.pa){ attacker.pa += d.pa; res.texts.push('+'+d.pa+' PA') }
+  if(d.selfhurt){ attacker.php=Math.max(0, attacker.php-d.selfhurt); res.texts.push('-'+d.selfhurt+' PV perso') }
+  if(d.aim){ attacker.fx.aim=(attacker.fx.aim||0)+d.aim; res.texts.push('+precision') }
   if(d.hole){
     const all=[...target.back.map(c=>['back',c]),...target.front.map(c=>['front',c])]
     if(all.length){ const [z,c]=all[Math.floor(rng()*all.length)]; target[z].splice(target[z].indexOf(c),1); target.discard.push(c); res.texts.push('perd '+C(c).n+' de sa poche') }
@@ -122,13 +188,31 @@ export function resolveSpell(attacker, target, card, rng){
   return res
 }
 
-export function startTurnEffects(s){
+export function startTurnEffects(s, rng){
   const ev=[]
   s.food=s.foodMax; s.foodPlayed=false
+  // PA du tour (rapidite perso), paBonus retombe apres usage
+  s.paMax = paForTurn(s); s.pa = s.paMax
+  // poison sur le familier
   if(s.fx.poison){ s.fx.poison--; const pd=5; s.hp=Math.max(0,s.hp-pd); ev.push({type:'poison',dmg:pd}) }
+  // auto-poison (accelerateur) : blesse le perso chaque tour
+  if(s.fx.selfPoison){ s.fx.selfPoison--; s.php=Math.max(0,s.php-3); ev.push({type:'selfpoison',dmg:3}) }
+  // le familier retourne : il a attaque son maitre, l'etat retombe
+  if(s.turned>0){ s.turned--; if(s.turned===0) ev.push({type:'calmed'}) }
+  // sinon, risque de retournement si confiance basse
+  else if(rng && checkTurn(s, rng)){ ev.push({type:'turn'}) }
   if(s.fx.stun){ s.fx.stun=0; ev.push({type:'stun'}) }
   return ev
 }
-export function endTurnEffects(s){ for(const k of ['eyes','slow','fear','haste']) if(s.fx[k]) s.fx[k]-- }
+export function endTurnEffects(s){ for(const k of ['eyes','slow','fear','haste']) if(s.fx[k]) s.fx[k]--; s.fx.paBonus=0 }
 
+// Une carte consomme un POINT D'ACTION si elle implique le LANCEUR (perso) :
+// nourriture, soda, et sorts qui ne ciblent PAS uniquement le familier (self/pote/perso/choose).
+// Les attaques du familier seul (target 'pet') ne coutent QUE de la nourriture.
+export function usesPA(card){
+  const d = card.key ? C(card) : card
+  if(d.type==='food' || d.type==='soda') return true
+  if(d.type==='spell') return d.target!=='pet'
+  return true
+}
 export const CARD = C

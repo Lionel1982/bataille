@@ -61,10 +61,13 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
 
   async function startTurn(s){
     const G=g.current; G.active=s; G.sel=null; G.busy=true; force()
-    LOG('startTurn', s.name, 'tour', G.turn, SNAP(s))
-    const ev=E.startTurnEffects(s)
+    LOG('startTurn', s.name, 'tour', G.turn, SNAP(s), 'PA='+s.pa+'/'+s.paMax+' conf='+s.conf+' aggro='+s.aggro)
+    const ev=E.startTurnEffects(s, G.rng)
     for(const e of ev){
-      if(e.type==='poison'){ fx.current?.hit(s.isMe?'me':'opp'); fx.current?.float(s.isMe?'me':'opp','-'+e.dmg+' ☠️','#9be564'); say(`${s.name} subit le poison (-${e.dmg}).`); force(); await sleep(d(600)); if(await checkEnd())return }
+      if(e.type==='poison'){ fx.current?.hit(s.isMe?'me':'opp'); fx.current?.float(s.isMe?'me':'opp','-'+e.dmg+' ☠️','#9be564'); say(`${s.name} : le familier subit le poison (-${e.dmg}).`); force(); await sleep(d(600)); if(await checkEnd())return }
+      if(e.type==='selfpoison'){ fx.current?.hitPerso&&fx.current.hitPerso(s.isMe?'me':'opp'); fx.current?.float(s.isMe?'me':'opp','-'+e.dmg+' 💉','#b39ddb'); say(`${s.name} : l'accelerateur poison ronge le perso (-${e.dmg}).`); force(); await sleep(d(500)); if(await checkEnd())return }
+      if(e.type==='turn'){ await fx.current?.banner('😾 '+(s.isMe?'TON':'LE')+' FAMILIER SE RETOURNE !'); const self=Math.round(6*E.aggroMul(s)); s.php=Math.max(0,s.php-self); fx.current?.float(s.isMe?'me':'opp','-'+self+' 😾','#e53935'); say(`${s.cr.n} mord son maitre ! (-${self} PV perso)`); force(); await sleep(d(800)); if(await checkEnd())return }
+      if(e.type==='calmed'){ say(`${s.cr.n} se calme.`); force(); await sleep(d(300)) }
       if(e.type==='stun'){ await fx.current?.banner(s.isMe?'😵 TU ES SONNE !':'😵 ALEX EST SONNE !'); return endTurn(true) }
     }
     const n=HAND_DRAW-(s.fx.work?2:0); s.fx.work=0; E.drawCards(s,n)
@@ -92,7 +95,8 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
 
   async function playCard(s, c, from){
     const G=g.current; G.busy=true; G.sel=null; fx.current?.sfx('card')
-    LOG('playCard', s.name, CARD(c).n, 'from='+from, 'cout='+(E.costOf(s,c)))
+    LOG('playCard', s.name, CARD(c).n, 'from='+from, 'PA='+s.pa, 'nourriture='+(E.costOf(s,c)))
+    if(E.usesPA(c)) s.pa = Math.max(0, s.pa - 1)   // PA seulement si la carte implique le lanceur
     const list = from==='hand'? s.hand : s[from]; list.splice(list.indexOf(c),1); force()
     if(!s.isMe) await fx.current?.reveal(c)
     const card=CARD(c), t = s===G.me?G.opp:G.me
@@ -106,10 +110,16 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
     } else {
       s.food-=E.costOf(s,c); force()
       const bonus=E.famBonus(s,card)
-      say(`${card.target==='pote'?s.name:(s.isMe?'Ton ':'Le ')+s.cr.n} lance ${card.n.toUpperCase()}${bonus?' ✨':''} !`)
-      // animation : glissade + onomatopee geante + dessin d'action
-      await fx.current?.attack(s, t, card)
-      const res=E.resolveSpell(s,t,c,G.rng)
+      // cible mixte : carte 'choose' -> cible decidee (joueur via UI, IA via heuristique)
+      let effCard=card
+      if(card.target==='choose'){
+        let aim = s.isMe ? (G.chooseTarget||'pet') : (t.hp>t.max*0.5?'perso':'pet')
+        effCard={...card, target: aim==='perso'?'perso':'pet'}
+        G.chooseTarget=null
+      }
+      say(`${effCard.target==='perso'?s.name:(s.isMe?'Ton ':'Le ')+s.cr.n} lance ${card.n.toUpperCase()}${bonus?' ✨':''} !`)
+      await fx.current?.attack(s, t, effCard)
+      const res=E.resolveSpell(s,t,c,G.rng, card.target==='choose'?effCard.target:undefined)
       if(res.miss){ fx.current?.sfx('dodge'); fx.current?.dodge(t.isMe?'me':'opp'); fx.current?.float(t.isMe?'me':'opp',res.miss==='ESQUIVE'?'ESQUIVE !':'RATE !','#fff',true); say(`${t.cr.n} ${res.miss==='ESQUIVE'?'esquive':'rate'} !`) }
       else {
         fx.current?.result(s,t,res)
@@ -131,7 +141,14 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
   }
 
   async function checkEnd(){
-    const G=g.current; if(G.me.hp>0 && G.opp.hp>0) return false
+    const G=g.current
+    // Perso a 0 PV : pas de mort immediate -> penalite (un PA max en moins + confiance du familier qui chute)
+    for(const s of [G.me,G.opp]){
+      if(s.php<=0 && !s._persoKO){ s._persoKO=true; s.paMax=Math.max(1,s.paMax-1); s.pa=Math.min(s.pa,s.paMax); E.addConfidence(s,-30,false)
+        LOG('perso KO ->',s.name,'penalite PA/confiance'); say(`${s.name} : le perso est au tapis ! Le familier doute (-confiance).`); force() }
+    }
+    // Defaite = familier KO
+    if(G.me.hp>0 && G.opp.hp>0) return false
     LOG('checkEnd : fin de partie, me.hp='+G.me.hp+' opp.hp='+G.opp.hp)
     G.over=true; G.busy=true; const win=G.opp.hp<=0; force()
     fx.current?.ko(win?'opp':'me'); fx.current?.sfx(win?'win':'lose')
@@ -148,8 +165,12 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
   async function aiPlay(){
     const G=g.current; await sleep(d(300)); LOG('aiPlay debut', SNAP(G.opp))
     const food=aiChooseAction(G.opp)
-    if(food && food.isFood){ await playCard(G.opp, food.card, 'hand'); if(G.over)return }
-    for(let i=0;i<8;i++){ const a=aiChooseAction(G.opp); if(!a||a.isFood)break; await playCard(G.opp,a.card,a.zone); if(G.over)return }
+    if(G.opp.pa>0 && food && food.isFood){ await playCard(G.opp, food.card, 'hand'); if(G.over)return }
+    for(let i=0;i<10;i++){
+      const a=aiChooseAction(G.opp); if(!a||a.isFood) break
+      if(E.usesPA(a.card) && G.opp.pa<=0) break   // plus de PA pour une action du lanceur
+      await playCard(G.opp,a.card,a.zone); if(G.over)return
+    }
     for(const h of aiPocketChoices(G.opp)){ const z=G.opp.back.length<G.opp.backMax?'back':G.opp.front.length<G.opp.frontMax?'front':null; if(!z)break; G.opp.hand.splice(G.opp.hand.indexOf(h),1); G.opp[z].push(h); say('Alex planque une carte 🤨'); force(); await sleep(d(400)) }
     await sleep(d(220)); endTurn()
   }
@@ -159,7 +180,6 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
   const me=G.me, opp=G.opp, mine=G.active===me && !G.over
   const selCard = G.sel ? (G.sel.from==='hand'?me.hand:me[G.sel.from]).find(x=>x.id===G.sel.id) : null
 
-  const accCursor = s => (E.accuracy(s)*100) // 0..100, 100 = plein a droite
 
   return (
     <div className="screen on" style={{position:'relative'}}>
@@ -167,11 +187,13 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
         <div className="sky"/><div className="house h1"/><div className="house h2"/><div className="house h3"/><div className="road"/>
 
         {/* ===== LIGNE ADVERSAIRE (haut) : barre a gauche · animal au centre · perso a droite ===== */}
-        <div className="hpbox" style={{left:6,top:6,width:168}}>
-          <div className="top"><span>{opp.name} & {opp.cr.n.toUpperCase()} {FAMILIES[opp.cr.f].i}</span><span>{opp.hp}/{opp.max}</span></div>
+        <div className="hpbox" style={{left:6,top:6,width:176}}>{paGauge(opp,'right')}
+          <div className="top"><span>{opp.name} 🧑</span><span>❤️{opp.php}/{opp.phpMax}</span></div>
+          <div className="hpbar perso"><div className="hpfill" style={{width:(opp.php/opp.phpMax*100)+'%',background:'#ff7043'}}/></div>
+          <div className="top" style={{marginTop:2}}><span>{opp.cr.n.toUpperCase()} {FAMILIES[opp.cr.f].i}</span><span>{opp.hp}/{opp.max}</span></div>
           <div className="hpbar"><div className="hpfill" style={{width:(opp.hp/opp.max*100)+'%',background:hpCol(opp)}}/></div>
-          <div className="accwrap"><div className="acclabel"><span>🎯 Precision</span><span>{Math.round(E.accuracy(opp)*100)}%</span></div>
-            <div className="accbar"><div className="fill" style={{width:accCursor(opp)+'%'}}/></div></div>
+          {accBar(opp)}
+          {gauges(opp)}
           <div className="st">⚡{spd(opp)} 🍖{opp.food}/{opp.foodMax} 👖{opp.back.length} {statusTxt(opp)}</div>
         </div>
         {/* perso adverse en haut a droite */}
@@ -180,7 +202,7 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
           {opp.front.length>0 && <div className="oppfrontcard" style={{left:-4,top:44,fontSize:22}} onClick={()=>setZoomCard(opp.front[0])}>🂠</div>}
         </div>
         {/* animal adverse : vers le centre (un peu a gauche du milieu), regarde a droite... vers le bas */}
-        <Sprite side={opp} id="oppPet" style={{right:70,top:40,left:'auto',width:120,height:120}} scale={0.8} flip/>
+        <Sprite side={opp} id="oppPet" style={{right:70,top:40,left:'auto',width:120,height:120}} scale={0.8}/>
 
         {/* ===== LIGNE JOUEUR (bas) : perso a gauche · animal au centre · barre a droite ===== */}
         {/* ton perso en bas a gauche, vue aux genoux */}
@@ -188,7 +210,7 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
           <img className="spr avatarknee" src={IMG.avatarKnee[me.avatar]} alt="" style={{maxHeight:'none'}}/>
         </div>
         {/* ton animal : a droite de ton perso, vers le centre, face a l'animal adverse */}
-        <Sprite side={me} id="myPet" style={{left:150,top:150,width:150,height:160,zIndex:7}} scale={1.1}/>
+        <Sprite side={me} id="myPet" style={{left:150,top:150,width:150,height:160,zIndex:7}} scale={1.1} mine/>
 
         {/* ressources : en bas a gauche, sous ton perso */}
         <div className="res" style={{top:'auto',bottom:6,left:6}}>
@@ -197,11 +219,13 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
           <div className="pips">{Array.from({length:SODA_MAX},(_,i)=><i key={i} className={i<me.soda?'on':''}/>)}</div>
         </div>
         {/* ta barre de vie + precision : en bas a DROITE */}
-        <div className="hpbox" style={{right:6,bottom:6,top:'auto',left:'auto',width:168}}>
-          <div className="top"><span>{me.name} & {me.cr.n.toUpperCase()} {FAMILIES[me.cr.f].i}</span><span>{me.hp}/{me.max}</span></div>
+        <div className="hpbox" style={{right:6,bottom:6,top:'auto',left:'auto',width:176}}>{paGauge(me,'left')}
+          <div className="top"><span>{me.name} 🧑</span><span>❤️{me.php}/{me.phpMax}</span></div>
+          <div className="hpbar perso"><div className="hpfill" style={{width:(me.php/me.phpMax*100)+'%',background:'#ff7043'}}/></div>
+          <div className="top" style={{marginTop:2}}><span>{me.cr.n.toUpperCase()} {FAMILIES[me.cr.f].i}</span><span>{me.hp}/{me.max}</span></div>
           <div className="hpbar"><div className="hpfill" style={{width:(me.hp/me.max*100)+'%',background:hpCol(me)}}/></div>
-          <div className="accwrap"><div className="acclabel"><span>🎯 Precision</span><span>{Math.round(E.accuracy(me)*100)}%</span></div>
-            <div className="accbar"><div className="fill" style={{width:accCursor(me)+'%'}}/></div></div>
+          {accBar(me)}
+          {gauges(me)}
           <div className="st">⚡{spd(me)} {statusTxt(me)}</div>
         </div>
         <Fx ref={fx} getG={()=>g.current} dMul={()=>fastRef.current?0.55:1} pausedRef={pausedRef}/>
@@ -235,8 +259,11 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
       <div className="handzone">
         {selCard && mine && !G.busy && (
           <div className="actbar on">
-            <div className="lbl">{CARD(selCard).n} · {costLbl(me,selCard)}{E.whyNot(me,selCard)&&<em>{E.whyNot(me,selCard)}</em>}</div>
-            <button disabled={!!E.whyNot(me,selCard)} onClick={()=>playCard(me,selCard,G.sel.from)}>JOUER</button>
+            <div className="lbl">{CARD(selCard).n} · {costLbl(me,selCard)}{(E.whyNot(me,selCard)||(E.usesPA(selCard)&&me.pa<=0))&&<em>{E.whyNot(me,selCard)||'0 point d action'}</em>}</div>
+            {CARD(selCard).target==='choose' ? <>
+              <button disabled={!!E.whyNot(me,selCard)||(E.usesPA(selCard)&&me.pa<=0)} onClick={()=>{g.current.chooseTarget='pet';playCard(me,selCard,G.sel.from)}}>🎯 Familier</button>
+              <button disabled={!!E.whyNot(me,selCard)||(E.usesPA(selCard)&&me.pa<=0)} onClick={()=>{g.current.chooseTarget='perso';playCard(me,selCard,G.sel.from)}}>🎯 Perso</button>
+            </> : <button disabled={!!E.whyNot(me,selCard) || (E.usesPA(selCard)&&me.pa<=0)} onClick={()=>playCard(me,selCard,G.sel.from)}>JOUER</button>}
             {G.sel.from==='hand' && <button className="alt" disabled={me.back.length>=me.backMax&&me.front.length>=me.frontMax} onClick={()=>pocket(selCard)}>👖</button>}
             <button className="x" onClick={()=>{g.current.sel=null;force()}}>✕</button>
           </div>
@@ -245,7 +272,7 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
           {me.hand.length? me.hand.map((c,i)=>{
             const n=me.hand.length, off=i-(n-1)/2, sel=G.sel&&G.sel.id===c.id
             const tr = sel?`translate(${off*66}px,-54px) scale(1.12)`:`translate(${off*66}px,${off*off*5}px) rotate(${off*6}deg)`
-            return <Card key={c.id} card={CARD(c)} side={me} style={{transform:tr}} disabled={mine&&!!E.whyNot(me,c)} selected={sel}
+            return <Card key={c.id} card={CARD(c)} side={me} style={{transform:tr}} disabled={mine&&(!!E.whyNot(me,c)||(E.usesPA(c)&&me.pa<=0))} selected={sel}
                      onClick={()=>{ if(G.busy||!mine)return; g.current.sel=sel?null:{id:c.id,from:'hand'}; force() }}/>
           }) : <div className="handmsg">{mine?'Main vide → FIN DU TOUR':'Alex reflechit… 🤔'}</div>}
         </div>
@@ -278,3 +305,33 @@ function slot(me,z,i,G,setSel){
 const hpCol=s=>{const p=s.hp/s.max; return p>.5?'#4caf50':p>.25?'#ff9800':'#f44336'}
 const costLbl=(s,c)=>{const d=CARD(c); if(d.type==='food')return '+'+(d.gain||1)+'🍖'; if(d.type==='soda')return '+1⚡'; return E.costOf(s,c)+'🍖'}
 function statusTxt(s){const f=s.fx,o=[];if(f.poison)o.push('☠️'+f.poison);if(f.eyes)o.push('😵'+f.eyes);if(f.slow)o.push('🐌'+f.slow);if(f.blind)o.push('🏖️');if(f.fear)o.push('😱'+f.fear);if(f.work)o.push('💼');if(f.haste)o.push('🪶'+f.haste);if(f.stun)o.push('💫');if(s.shield)o.push('🫧'+s.shield);return o.join(' ')}
+
+// Barre de precision : remplissage + couleur par palier (valeur % cachee, couleur = avertissement)
+function accBar(s){
+  const pct=Math.round(E.accuracy(s)*100)
+  const tier=E.accTier(pct)
+  return (
+    <div className="accwrap">
+      <div className="acclabel"><span>🎯 Precision</span><span style={{color:tier.col}}>{tier.name}</span></div>
+      <div className="accbar"><div className="fill" style={{width:pct+'%',background:tier.col}}/></div>
+    </div>
+  )
+}
+// Jauges confiance (coeur) et agressivite (crans)
+function gauges(s){
+  const confPct=Math.round((s.conf/E.CONF_MAX)*100)
+  return (
+    <div className="gauges">
+      <div className="g"><span>💙 Confiance</span><div className="gbar"><div className="gfill conf" style={{width:confPct+'%'}}/></div></div>
+      <div className="g"><span>😡 Agressivite</span><div className="aggro">{Array.from({length:E.AGGRO_MAX},(_,i)=><i key={i} className={i<s.aggro?'on':''}/>)}</div></div>
+      {s.turned>0 && <div className="turned">😾 RETOURNE !</div>}
+    </div>
+  )
+}
+
+// Jauge verticale de points d'action, accolee a la boite (side=left/right)
+function paGauge(s, sidePos){
+  const pips=[]
+  for(let i=0;i<s.paMax;i++) pips.push(<i key={i} className={i<s.pa?'on':''}/>)
+  return <div className={'pagauge '+sidePos} title={'Points d action : '+s.pa+'/'+s.paMax}>{pips}</div>
+}

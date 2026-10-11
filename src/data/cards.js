@@ -26,18 +26,18 @@ export const TRAITS={
 };
 // pow = multiplicateur dégâts physiques. size = taille à l'écran.
 export const CREATURES={
-  chat:{n:'Chat',f:'poils',hp:52,spd:4,pow:1,size:92,pts:18},
-  chien:{n:'Chien',f:'poils',hp:72,spd:3,pow:1.2,size:104,pts:24},
-  souris:{n:'Souris',f:'poils',hp:30,spd:6,pow:.7,size:60,pts:12,t:['minuscule']},
-  elephant:{n:'Éléphant',f:'poils',hp:130,spd:1,pow:1.7,size:155,pts:48,t:['enorme']},
-  bison:{n:'Bison',f:'poils',hp:108,spd:2,pow:1.5,size:140,pts:40,t:['enorme']},
-  serpent:{n:'Serpent',f:'ecailles',hp:46,spd:5,pow:1,size:88,pts:20},
-  lezard:{n:'Lézard',f:'ecailles',hp:46,spd:5,pow:1.05,size:86,pts:20},
-  tortue:{n:'Tortue',f:'ecailles',hp:92,spd:1,pow:1,size:104,pts:28,t:['carapace']},
-  poisson:{n:'Poisson',f:'aqua',hp:54,spd:3,pow:1,size:88,pts:16},
-  guppy:{n:'Guppy',f:'aqua',hp:26,spd:6,pow:.7,size:56,pts:9,t:['minuscule']},
-  oiseau:{n:'Oiseau',f:'plumes',hp:42,spd:6,pow:.95,size:82,pts:19},
-  poulet:{n:'Poulet',f:'plumes',hp:60,spd:3,pow:1,size:92,pts:15}
+  chat:{n:'Chat',f:'poils',hp:52,spd:4,pow:1,size:92,pts:18,faceLeft:true},
+  chien:{n:'Chien',f:'poils',hp:72,spd:3,pow:1.2,size:104,pts:24,faceLeft:true},
+  souris:{n:'Souris',f:'poils',hp:30,spd:6,pow:.7,size:60,pts:12,t:['minuscule'],faceLeft:true},
+  elephant:{n:'Éléphant',f:'poils',hp:130,spd:1,pow:1.7,size:155,pts:48,t:['enorme'],faceLeft:true},
+  bison:{n:'Bison',f:'poils',hp:108,spd:2,pow:1.5,size:140,pts:40,t:['enorme'],faceLeft:false},
+  serpent:{n:'Serpent',f:'ecailles',hp:46,spd:5,pow:1,size:88,pts:20,faceLeft:true},
+  lezard:{n:'Lézard',f:'ecailles',hp:46,spd:5,pow:1.05,size:86,pts:20,faceLeft:true},
+  tortue:{n:'Tortue',f:'ecailles',hp:92,spd:1,pow:1,size:104,pts:28,t:['carapace'],faceLeft:true},
+  poisson:{n:'Poisson',f:'aqua',hp:54,spd:3,pow:1,size:88,pts:16,faceLeft:true},
+  guppy:{n:'Guppy',f:'aqua',hp:26,spd:6,pow:.7,size:56,pts:9,t:['minuscule'],faceLeft:true},
+  oiseau:{n:'Oiseau',f:'plumes',hp:42,spd:6,pow:.95,size:82,pts:19,faceLeft:true},
+  poulet:{n:'Poulet',f:'plumes',hp:60,spd:3,pow:1,size:92,pts:15,faceLeft:false}
 };
 export const TOPS={
   tshirt:{n:'T-shirt',i:'👕',pts:0,front:0,hp:0,d:'Rien'},
@@ -84,6 +84,14 @@ export const CARDS={
   bulle:{n:'Bulle protectrice',art:'🫧',type:'spell',cost:4,pts:6,foodType:'aqua',target:'self',shield:16,anim:'heal',fx:'BLOP !',col:'#80deea',txt:'Bouclier absorbant 16 dégâts. 💧 Aqua : -1, +50%.'},
   fiente:{n:'Fiente en piqué',art:'💩',type:'spell',cost:5,pts:7,foodType:'plumes',target:'pet',dmg:10,blind:1,anim:'dive',fx:'SPLAF !',col:'#a1887f',txt:'10 dégâts + aveugle. 🪶 Plumes : -1, +50%.'},
   envol:{n:'Envol',art:'🪶',type:'spell',cost:3,pts:5,foodType:'plumes',target:'self',haste:2,anim:'heal',fx:'ZOOOM !',col:'#ce93d8',txt:'+2 vitesse pendant 2 tours. 🪶 Plumes : -1, +50%.'},
+  // --- NOUVEAU : confiance / agressivite / rapidite (refonte 11 oct) ---
+  cajole:{n:'Papouilles',art:'🥰',type:'spell',cost:0,pts:3,target:'self',calin:20,calmAggro:1,anim:'heal',fx:'RONRON !',col:'#f48fb1',txt:'+20 confiance, -1 agressivite (le familier se calme).'},
+  dresse:{n:'Dressage dur',art:'🥊',type:'spell',cost:0,pts:3,target:'self',brime:15,brimeAggro:1,anim:'taunt',fx:'AU PIED !',col:'#8d6e63',txt:'+1 agressivite mais -15 confiance (brimade).'},
+  steak:{n:'Steak cru',art:'🥩',type:'spell',cost:2,pts:4,target:'self',aggro:1,calin:10,anim:'heal',fx:'MIAM !',col:'#d84315',txt:'+10 confiance ET +1 agressivite (la bonne recompense).'},
+  rollers:{n:'Rollers',art:'🛼',type:'spell',cost:0,pts:4,target:'self',pa:1,anim:'heal',fx:'ZOOM !',col:'#26c6da',txt:'+1 point d\'action ce tour (goofy).'},
+  accelo:{n:'Accelerateur poison',art:'💉',type:'spell',cost:0,pts:4,target:'self',pa:1,selfhurt:4,anim:'taunt',fx:'AARGH !',col:'#7e57c2',txt:'+1 PA ce tour mais -4 PV perso.'},
+  concentre:{n:'Concentration',art:'🎯',type:'spell',cost:1,pts:3,target:'self',aim:1,anim:'heal',fx:'FOCUS !',col:'#1e88e5',txt:'+precision (monte la jauge).'},
+  croc:{n:'Croc-en-jambe',art:'🦵',type:'spell',cost:2,pts:4,target:'choose',dmg:9,anim:'slide',fx:'PAF !',col:'#ff7043',txt:'9 degats. Tu choisis la cible : familier OU perso.'},
   // --- Finishers (chers, à garder en poche) ---
   charge:{n:'Charge écrasante',art:'💥',type:'spell',cost:7,pts:11,target:'pet',dmg:24,phys:1,big:1,anim:'slide',fx:'BAOUM !!',col:'#d50000',txt:'24 dégâts physiques. Les gros animaux font un carnage.'},
   sumo:{n:'Plongeon sumo',art:'🏋️',type:'spell',cost:8,pts:13,target:'pet',dmg:22,phys:1,stun:1,big:1,anim:'slide',fx:'CRAAAC !!',col:'#6a1b9a',txt:'22 dégâts physiques + l\'adversaire saute son tour.'},
@@ -92,7 +100,7 @@ export const CARDS={
 };
 // Deck conseillé (bouton) — adapté à la famille de l'animal choisi
 export function suggestedDeck(fam, maxPts){
-  const base={soda:3,morsure:4,pue:2,bave:2,sable:1,grimace:2,calin:2,pique:1,vabosser:1,charge:1,sumo:1};
+  const base={soda:2,morsure:4,pue:2,bave:2,grimace:1,cajole:2,dresse:1,rollers:2,concentre:1,croc:2,charge:1,sumo:1};
   const perFam={
     poils:{croq:5,os:2,griffe:3},
     ecailles:{grillon:5,salade:2,venin:2,mue:1},

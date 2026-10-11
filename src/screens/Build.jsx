@@ -52,7 +52,7 @@ export default function Build({ auth, onFight, onOnline }){
             </div>
           ))}
         </div>
-        <h2>2. Ton animal</h2>
+        <h2>2. Ton familier</h2>
         <div className="grid">
           {Object.entries(CREATURES).map(([k,c])=>(
             <div key={k} className={'cre'+(b.pet===k?' sel':'')} onClick={()=>set({pet:k})}>
