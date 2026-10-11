@@ -4,6 +4,7 @@ import * as E from '../game/engine.js'
 import { aiChooseAction, aiPocketChoices } from '../game/ai.js'
 import { actionArt } from '../game/actionArt.js'
 import { IMG } from '../assets/images.js'
+import { spriteFor, onSpriteError } from '../assets/sprites.js'
 import { supabase, online } from '../lib/supabase.js'
 import { openMatchChannel, sendAction, firstPlayerIsHost, fetchMatch } from '../lib/online.js'
 import { awardPoints } from '../lib/economy.js'
@@ -317,7 +318,7 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
         </div>
         {/* perso adverse en haut a droite */}
         <div className="ent" id="oppPote" style={{right:4,top:4,left:'auto',width:90,height:140}}>
-          <img className="spr" src={IMG.avatarFull[opp.avatar]||IMG.oppPote} style={{width:88}} alt=""/>
+          {(()=>{ const a=spriteFor('avatars',opp.avatar,'front'); return <img className="spr" src={a.src} onError={onSpriteError(a.fallback)} style={{width:88}} alt=""/> })()}
           {opp.front.length>0 && <div className="oppfrontcard" style={{left:-4,top:44,fontSize:22}} onClick={()=>setZoomCard(opp.front[0])}>🂠</div>}
         </div>
         {/* animal adverse : vers le centre (un peu a gauche du milieu), regarde a droite... vers le bas */}
@@ -326,7 +327,7 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
         {/* ===== LIGNE JOUEUR (bas) : perso a gauche · animal au centre · barre a droite ===== */}
         {/* ton perso en bas a gauche, vue aux genoux */}
         <div className="ent" id="myPote" style={{left:2,top:150,width:150,height:200,zIndex:6,overflow:'visible',alignItems:'flex-end'}}>
-          <img className="spr avatarknee" src={IMG.avatarKnee[me.avatar]} alt="" style={{maxHeight:'none'}}/>
+          {(()=>{ const a=spriteFor('avatars',me.avatar,'back'); return <img className="spr avatarknee" src={a.src} onError={onSpriteError(a.fallback)} alt="" style={{maxHeight:'none'}}/> })()}
         </div>
         {/* ton animal : a droite de ton perso, vers le centre, face a l'animal adverse */}
         <Sprite side={me} id="myPet" style={{left:140,top:152,width:150,height:160,zIndex:9}} scale={0.99} mine/>

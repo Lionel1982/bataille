@@ -2,13 +2,14 @@ import { AVATARS, TOPS, BOTTOMS } from '../data/cards.js'
 import { IMG } from '../assets/images.js'
 
 // Ecran dedie : choix de l'avatar du joueur ET de ses fringues (poches/PV).
-export default function AvatarScreen({ ld, onBack }){
+export default function AvatarScreen({ ld, onBack, onSkins }){
   const { b, set } = ld
   return (
     <div className="screen2">
       <div className="backbar"><button onClick={onBack}>◀ Retour</button><span className="sp"/><b>👤 Mon avatar</b></div>
       <div className="s2body">
         <p className="hint">Choisis le personnage qui te represente dans l'arene.</p>
+        {onSkins && <button className="big alt2" style={{marginBottom:10}} onClick={onSkins}>🎭 Mes skins (illustrations perso)</button>}
         <div className="avgrid">
           {Object.entries(AVATARS).map(([k,a])=>(
             <div key={k} className={'avbig'+(b.avatar===k?' sel':'')} onClick={()=>set({avatar:k})}>

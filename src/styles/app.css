@@ -125,14 +125,14 @@ button{font-family:inherit;cursor:pointer}
 @keyframes wInR{0%{transform:translate(20%,-50%) rotate(30deg) scale(.4)}}
 /* ---- MAIN & CARTES (gros dessins) ---- */
 .handzone{position:relative;flex:1;overflow:hidden;background:#fff4fb radial-gradient(#ffd0ec 1.5px,transparent 1.6px);background-size:14px 14px}
-.card{position:absolute;bottom:-10px;left:50%;width:104px;height:150px;margin-left:-52px;border:3px solid #111;border-radius:12px;box-shadow:3px 4px 0 rgba(0,0,0,.35);transition:transform .25s,opacity .25s;transform-origin:50% 120%;cursor:pointer;padding:4px;display:flex;flex-direction:column;align-items:center;overflow:hidden}
-.card .cost{position:absolute;top:3px;left:3px;background:#fff;border:2px solid #111;border-radius:10px;font-size:12px;padding:0 5px;z-index:2}
+.card{position:absolute;bottom:-10px;left:50%;width:118px;height:172px;margin-left:-59px;background:#fdf5e6;border:3px solid #111;border-radius:12px;box-shadow:3px 4px 0 rgba(0,0,0,.35);transition:transform .25s,opacity .25s;transform-origin:50% 120%;cursor:pointer;padding:0;display:flex;flex-direction:column;align-items:stretch;overflow:hidden}
+
 .card .famb{position:absolute;top:3px;right:3px;border:2px solid #111;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;background:#fff;z-index:2}
-.card .art{font-size:62px;line-height:1;margin:14px 0 2px;filter:drop-shadow(2px 2px 0 rgba(0,0,0,.2))}
-.card .name{font-family:'Bangers';font-size:16px;text-align:center;line-height:1}
-.card .txt{font-size:9px;text-align:center;margin-top:2px;line-height:1.12;opacity:.92}
+
+
+
 .card.disabled{filter:saturate(.3) brightness(.92)}
-.card.sel{box-shadow:0 0 0 4px #fff,0 0 20px 7px #ffe600;z-index:10}
+.card.sel{transform:scale(1.5);box-shadow:0 0 0 4px #fff,0 0 22px 8px #ffe600;z-index:10}
 .card.played{transform:translate(0,-320px) scale(.4)!important;opacity:0}
 .card.gone{transform:translate(0,220px) rotate(20deg)!important;opacity:0}
 .card.bigc{background:linear-gradient(160deg,#ff5252,#ffab40)!important;box-shadow:0 0 0 2px #ffd600,3px 4px 0 rgba(0,0,0,.35)}
@@ -414,3 +414,34 @@ img{max-width:100%}
 .cardfull .cfmeta{font-size:13px;opacity:.75;margin-bottom:8px}
 .cardfull .cftxt{font-size:15px;line-height:1.4;margin-bottom:14px}
 .cardfull .big{max-width:220px}
+
+/* ===== Nouveau design de carte (v0.9.8) ===== */
+.card .chead{display:flex;align-items:flex-start;justify-content:space-between;gap:4px;padding:4px 6px 2px}
+.card .cname{font-family:'Bangers';font-size:14px;line-height:1;letter-spacing:.3px;text-align:left;flex:1;overflow:hidden;text-overflow:ellipsis}
+.card .ccost{font-family:'Bangers';font-size:13px;background:#fff;border:2px solid #111;border-radius:9px;padding:0 5px;white-space:nowrap}
+.card .cart{flex:1;display:flex;align-items:center;justify-content:center;margin:2px 6px;background:radial-gradient(circle at 50% 40%,#fff,#f0e6d2);border:2px solid #111;border-radius:9px;overflow:hidden;min-height:0}
+.card .cartimg{width:100%;height:100%;object-fit:contain}
+.card .cartemo{font-size:60px;line-height:1;filter:drop-shadow(2px 2px 0 rgba(0,0,0,.2))}
+.card .ctxt{background:#fff;border-top:2px solid #111;color:#111;font-size:9px;line-height:1.12;text-align:center;padding:3px 4px;min-height:30px;display:flex;align-items:center;justify-content:center}
+.card .famb{top:26px}
+
+/* ===== Panneau skins (v0.10.0) ===== */
+.skingrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0}
+.skincard{border:3px solid #111;border-radius:12px;background:#fff;padding:6px;text-align:center;cursor:pointer;box-shadow:2px 3px 0 rgba(0,0,0,.3)}
+.skincard.sel{outline:4px solid #ffe600;transform:scale(1.03)}
+.skincard img{width:100%;height:72px;object-fit:contain}
+.skincard b{display:block;font-size:11px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.skintags{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:3px}
+.tagdef{background:#4caf50;color:#fff;font-size:9px;padding:1px 5px;border-radius:8px}
+.tagslot{background:#2196f3;color:#fff;font-size:9px;padding:1px 5px;border-radius:8px}
+.skinassign{border-top:2px dashed #aaa;margin-top:10px;padding-top:10px}
+.assignrow{margin:6px 0}
+.abtn{background:#eee;border:2px solid #111;border-radius:10px;padding:6px 12px;font-weight:700;cursor:pointer}
+.abtn.on{background:#4caf50;color:#fff}
+.assigngrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px}
+.aslot{position:relative;border:2px solid #111;border-radius:10px;background:#fff;padding:4px;cursor:pointer;display:flex;flex-direction:column;align-items:center}
+.aslot img{width:100%;height:52px;object-fit:contain}
+.aslot span{font-size:10px}
+.aslot.on{background:#c8e6c9;outline:3px solid #4caf50}
+.aslot .chk{position:absolute;top:2px;right:4px;color:#2e7d32;font-weight:900}
+.skinempty{text-align:center;padding:20px 10px}

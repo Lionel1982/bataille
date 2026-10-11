@@ -1,0 +1,14 @@
+{
+  "skins": [
+    {
+      "slug": "alex",
+      "name": "Alex El-Rien",
+      "views": [
+        "front",
+        "back",
+        "defeated",
+        "select"
+      ]
+    }
+  ]
+}

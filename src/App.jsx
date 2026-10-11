@@ -11,6 +11,8 @@ import Leaderboard from './screens/Leaderboard.jsx'
 import Online from './screens/Online.jsx'
 import Shop from './screens/Shop.jsx'
 import Account from './screens/Account.jsx'
+import SkinsScreen from './screens/SkinsScreen.jsx'
+import { loadManifest } from './lib/skins.js'
 
 export default function App(){
   const auth = useAuth()
@@ -28,6 +30,7 @@ export default function App(){
   const setScreen = go
   useEffect(()=>{
     try{ history.replaceState({s:'home'},'') }catch(e){}
+    loadManifest()
     const onPop = ()=>{
       // bouton retour tel : revenir a l'accueil au lieu de quitter l'appli
       const cur = screenRef.current
@@ -49,7 +52,7 @@ export default function App(){
         onOnline={(cfg)=>{ setLoadout(cfg); setOnlineMode('create'); setScreen('online') }}
         onJoin={(cfg)=>{ setLoadout(cfg); setOnlineMode('join'); setScreen('online') }} />}
 
-      {screen==='avatar'   && <AvatarScreen   ld={ld} onBack={()=>setScreen('home')} />}
+      {screen==='avatar'   && <AvatarScreen   ld={ld} onBack={()=>setScreen('home')} onSkins={()=>setScreen('skins')} />}
       {screen==='familier' && <FamilierScreen ld={ld} onBack={()=>setScreen('home')} />}
       {screen==='deck'     && <DeckScreen     ld={ld} onBack={()=>setScreen('home')} />}
 
@@ -68,7 +71,8 @@ export default function App(){
         onBack={()=>setScreen('home')} />}
       {screen==='lead'  && <Leaderboard auth={auth} onBack={()=>setScreen('home')} onLogin={()=>setScreen('auth')} />}
       {screen==='shop'  && <Shop auth={auth} onBack={()=>setScreen('home')} />}
-      {screen==='account' && <Account auth={auth} onBack={()=>setScreen('home')} onLogin={()=>setScreen('auth')} onLeaderboard={()=>setScreen('lead')} />}
+      {screen==='account' && <Account auth={auth} onBack={()=>setScreen('home')} onLogin={()=>setScreen('auth')} onLeaderboard={()=>setScreen('lead')} onSkins={()=>setScreen('skins')} />}
+      {screen==='skins' && <SkinsScreen onBack={()=>setScreen('home')} />}
     </div>
   )
 }

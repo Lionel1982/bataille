@@ -1,46 +1,61 @@
-SPRITES DE BATAILLE DE PO/ETS
-=============================
+SPRITES & DESSINS DE BATAILLE DE PO/ETS
+=======================================
 
-Depose tes images ICI pour remplacer ou ajouter des sprites, SANS toucher au code.
+Depose tes images ICI pour remplacer/ajouter des visuels, SANS toucher au code.
+
+DIMENSIONS IMPOSEES (voir PROMPT-IA.txt)
+----------------------------------------
+  PERSO (4 vues) : canevas 1536x1536, grille 2x2, cases 768x768, marge >=80px, fond BLANC.
+  CARTES         : cases 384x384, 4 colonnes, fond TRANSPARENT.
+  Les scripts decoupent par grille FIXE ; en secours, ajoute --auto (detection des blocs).
+
+PROMPT POUR L'IA DE DESSIN
+--------------------------
+  PROMPT-IA.txt  -> prompt MAITRE unique (style Darkstalkers). Il couvre les 2 cas :
+      MODE A : planche de PERSONNAGE/FAMILIER en 4 vues (fond BLANC)
+      MODE B : planche de DESSINS DE CARTES en grille (fond TRANSPARENT)
+  CLES-CARTES.txt -> liste ordonnee des 41 cles de cartes (pour rediger la demande MODE B)
 
 DOSSIERS
 --------
-  public/sprites/familiers/   -> les animaux (chat, chien, dragon...)
-  public/sprites/actions/     -> les dessins d'attaque (morsure, griffe...)
-  public/sprites/avatars/     -> les personnages joueurs
+  public/sprites/familiers/   -> familiers (chat, chien, bison...)   : 4 vues
+  public/sprites/avatars/     -> personnages joueurs (h1..f3)        : 4 vues
+  public/sprites/cartes/      -> dessins centraux des cartes (<cle>.png)
+  public/sprites/actions/     -> (ancien) dessins d'attaque
 
-FORMAT
-------
-  - PNG avec FOND TRANSPARENT
-  - Carre de preference (512x512 ou 1024x1024)
-  - Sujet bien centre, qui regarde VERS LA GAUCHE (comme les familiers actuels)
-  - Poids conseille < 500 Ko
+======================================================================
+PERSONNAGES & FAMILIERS — 4 VUES (front / back / defeated / select)
+======================================================================
+FORMAT : PNG fond transparent apres decoupe, sujet centre.
+NOMMAGE (le nom = la cle utilisee par le jeu) :
+  Familiers : <cle>-<vue>.png     ex : chien-front.png, chien-back.png,
+                                        chien-defeated.png, chien-select.png
+  Avatars   : avatar-<id>-<vue>.png ex : avatar-h1-front.png ... avatar-h1-select.png
+  Vues : front (face), back (dos), defeated (KO couche), select (portrait).
+  Cles familiers : chat, chien, souris, elephant, bison, serpent, lezard,
+                   tortue, poisson, guppy, oiseau, poulet.
+  Ids avatars    : h1, h2, h3, f1, f2, f3.
 
-NOMMAGE (important : le nom = la cle utilisee par le jeu)
---------
-  Familiers : le nom du familier en minuscules, ex :
-      chat.png  chien.png  souris.png  dragon.png
-  Actions   : action-<nom>.png, ex :
-      action-morsure.png  action-griffe.png
-  Avatars   : avatar-<id>.png, ex :
-      avatar-h1.png  avatar-f1.png
+ACTIVER LES VUES DEPOSEES : ouvre src/assets/customSprites.js et declare les
+vues disponibles pour chaque entite, ex :
+  familiers: { chien:['front','back','defeated','select'] }
+  avatars:   { h1:['front','back','defeated','select'] }
+Les vues non deposees retombent sur un placeholder (pas de 404).
 
-COMMENT CA MARCHE
------------------
-  Un sprite depose ici REMPLACE automatiquement celui integre au jeu
-  (meme nom = priorite au fichier que tu as mis). Si le fichier n'existe
-  pas, le jeu garde le sprite d'origine. Pas besoin de recompiler : en
-  mode "npm run dev", il suffit de recharger la page.
+======================================================================
+DESSINS DE CARTES — planche en grille a decouper
+======================================================================
+1) Demande a l'IA une PLANCHE EN GRILLE (voir PROMPT-IA.txt, MODE B), fond
+   transparent, 1 dessin par case, DANS L'ORDRE d'une liste de cles.
+2) Depose la planche a la racine du projet (ex : planche-01.png).
+3) Lance la decoupe (ou demande-moi de le faire) :
+     py decouper-cartes.py planche-01.png croq os grillon salade morsure ...
+   # si la grille n'est pas respectee par l'IA, ajoute --auto :
+   py decouper-cartes.py planche-01.png croq os ... --auto
+   Le script deduit la grille, decoupe, rogne les marges, ecrit
+   public/sprites/cartes/<cle>.png ET met a jour src/assets/cardArt.js tout seul.
+4) Les cartes sans dessin gardent leur emoji (repli). Pas de 404.
 
-  Apres avoir ajoute des fichiers, pour la version en ligne : relance
-  3-ENVOYER-GITHUB.bat (Vercel redeploie).
-
-
-IMPORTANT - ACTIVER UN SPRITE DEPOSE
-------------------------------------
-Pour que le jeu utilise TON image au lieu de celle integree, apres avoir depose
-le fichier (ex: public/sprites/familiers/chien.png), ouvre le fichier
-  src/assets/customSprites.js
-et ajoute la cle dans la bonne liste, ex :
-  familiers: ['chien']
-Ainsi, pas de requete inutile (404) pour les sprites que tu n'as pas remplaces.
+PUBLICATION
+-----------
+  Apres avoir ajoute des fichiers, relance 3-ENVOYER-GITHUB.bat (Vercel redeploie).
