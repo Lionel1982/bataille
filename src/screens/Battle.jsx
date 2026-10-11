@@ -31,6 +31,16 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
   const [spellInfo,setSpellInfo] = useState(null)   // ? d'un sort -> info plein ecran (placeholder)
   const [menuOpen,setMenuOpen] = useState(false)   // menu ecrou (son/rapide/pause/menu/abandon)
   const [tryMsg,setTryMsg] = useState('')   // raison d'impossibilite, affichee seulement apres clic JOUER
+  const [drag,setDrag] = useState(null)   // glisser-deposer carte : {x,y,moved} ou null
+  const dragRef = useRef(null)
+  // drag listeners : suivre le doigt/souris sur toute la fenetre pendant un glisser
+  useEffect(()=>{
+    if(!drag) return
+    const mv=(e)=>dragMove(e), up=(e)=>dragEnd(e)
+    window.addEventListener('pointermove',mv,{passive:false})
+    window.addEventListener('pointerup',up)
+    return ()=>{ window.removeEventListener('pointermove',mv); window.removeEventListener('pointerup',up) }
+  },[drag])
   const pausedRef=useRef(false), fastRef=useRef(false)
   pausedRef.current=paused; fastRef.current=fast
   const closeChan = useRef(null)
@@ -300,6 +310,39 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
     await sleep(d(220)); endTurn()
   }
 
+  // ===== Glisser-deposer d'une carte (tactile + souris via pointer events) =====
+  function dragStart(e, card, from){
+    if(g.current.busy || !mine) return
+    g.current.sel = { id:card.id, from }; setTryMsg('')
+    const p = e.touches ? e.touches[0] : e
+    dragRef.current = { id:card.id, from, startX:p.clientX, startY:p.clientY, moved:false }
+    setDrag({ x:p.clientX, y:p.clientY, moved:false })
+    force()
+  }
+  function dragMove(e){
+    const d = dragRef.current; if(!d) return
+    const p = e.touches ? e.touches[0] : e
+    const moved = d.moved || Math.abs(p.clientX-d.startX)>8 || Math.abs(p.clientY-d.startY)>8
+    d.moved = moved
+    setDrag({ x:p.clientX, y:p.clientY, moved })
+  }
+  function dragEnd(e){
+    const d = dragRef.current; dragRef.current=null
+    if(!d){ setDrag(null); return }
+    const p = (e.changedTouches ? e.changedTouches[0] : e)
+    const card = (d.from==='hand'?g.current.me.hand:g.current.me[d.from]).find(x=>x.id===d.id)
+    const sceneEl = document.getElementById('scene')
+    const barEl = document.querySelector('.bottombar')
+    const inScene = sceneEl && (()=>{const r=sceneEl.getBoundingClientRect(); return p.clientY>=r.top && p.clientY<=r.bottom})()
+    const inBar = barEl && (()=>{const r=barEl.getBoundingClientRect(); return p.clientY>=r.top-10})()
+    if(d.moved && card){
+      const why = E.whyNot(me,card) || (E.paCostOf(card)>me.pa?'0 point d action':'')
+      if(inScene){ if(why){ setTryMsg(why) } else { setDrag(null); playCard(me,card,d.from); return } }
+      else if(inBar && d.from==='hand'){ setDrag(null); pocket(card); return }
+    }
+    setDrag(null); force()   // petit mouvement = simple selection (deja faite dans dragStart)
+  }
+
   const G=g.current
   if(!G) return <div className="screen on"/>
   const me=G.me, opp=G.opp, mine=G.active===me && !G.over
@@ -384,9 +427,7 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
           <span className="turn">TOUR {G.turn}{mine?' · TOI':' · ALEX'}</span>
           {selCard && mine && !G.busy ? (
             /* ZONE MULTI-INFO : explication + choix de la carte selectionnee */
-            <div className="actbar on actdark">
-              <div className="lbl">{CARD(selCard).n} · {costLbl(me,selCard)}</div>
-              <div className="actdesc">{CARD(selCard).txt}</div>
+            <div className="actbar on actdark compact">
               {tryMsg && <div className="trymsg">{tryMsg}</div>}
               <div className="actbtns">
                 {(()=>{ const why=E.whyNot(me,selCard)||(E.paCostOf(selCard)>me.pa?'0 point d action':''); const tryPlay=(aim)=>{ if(why){ setTryMsg(why); return } if(aim){g.current.chooseTarget=aim} setTryMsg(''); playCard(me,selCard,G.sel.from) }; return CARD(selCard).target==='choose'
@@ -427,19 +468,28 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
         <div id="hand">
           {me.hand.length? me.hand.map((c,i)=>{
             const n=me.hand.length, off=i-(n-1)/2, sel=G.sel&&G.sel.id===c.id
-            const tr = sel?`translate(${off*66}px,-54px) scale(1.12)`:`translate(${off*66}px,${off*off*5}px) rotate(${off*6}deg)`
-            return <Card key={c.id} card={CARD(c)} side={me} style={{transform:tr}} disabled={mine&&(!!E.whyNot(me,c)||E.paCostOf(c)>me.pa)} selected={sel}
+            const tr = sel?`translate(${off*66}px,-30px) scale(1.0)`:`translate(${off*66}px,${off*off*5}px) rotate(${off*6}deg)`
+            return <Card key={c.id} card={CARD(c)} side={me} style={{transform:tr, opacity:(drag&&drag.moved&&G.sel&&G.sel.id===c.id)?0.25:1}} disabled={mine&&(!!E.whyNot(me,c)||E.paCostOf(c)>me.pa)} selected={sel}
+                     onPointerDown={(e)=>dragStart(e,c,'hand')}
                      onClick={()=>{ if(G.busy||!mine)return; g.current.sel=sel?null:{id:c.id,from:'hand'}; force() }}/>
           }) : <div className="handmsg">{mine?'Main vide → FIN DU TOUR':'Alex reflechit… 🤔'}</div>}
         </div>
+
+        {/* Preview AGRANDI de la carte selectionnee (poche OU main). Suit le doigt pendant le drag. */}
+        {selCard && mine && !G.busy && (
+          <div className={'cardpreview'+(drag&&drag.moved?' dragging':'')}
+               style={drag&&drag.moved?{left:drag.x,top:drag.y,transform:'translate(-50%,-50%) scale(1.15)'}:undefined}>
+            <Card card={CARD(selCard)} side={me}/>
+          </div>
+        )}
       </div>
 
       {/* ===== BARRE DU BAS : pioche / poches / defausse / fin de tour ===== */}
       <div className="bottombar">
         <div className="stack"><div className="pile">{me.deck.length}</div>Pioche</div>
         <div className="stack"><div className="slots">
-          {Array.from({length:me.backMax}).map((_,i)=>slot(me,'back',i,G,setSel))}
-          {Array.from({length:me.frontMax}).map((_,i)=>slot(me,'front',i,G,setSel))}
+          {Array.from({length:me.backMax}).map((_,i)=>slot(me,'back',i,G,setSel,dragStart))}
+          {Array.from({length:me.frontMax}).map((_,i)=>slot(me,'front',i,G,setSel,dragStart))}
         </div>👖 Poches</div>
         <div className="stack"><div className="pile disc">{me.discard.length}</div>Defausse</div>
         <button id="endBtn" disabled={G.busy||!mine} onClick={()=>!G.busy&&mine&&endTurn()}>FIN DU<br/>TOUR ▶</button>
@@ -472,11 +522,13 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
   function setSel(sel){ g.current.sel=sel; setTryMsg(''); force() }
 }
 
-function slot(me,z,i,G,setSel){
+function slot(me,z,i,G,setSel,onPickPocket){
   const c=me[z][i]
   if(!c) return <div key={z+i} className={'slot empty '+z}>vide</div>
   const sel=G.sel&&G.sel.id===c.id
-  return <div key={z+i} className={'slot t-'+CARD(c).type+' '+z+(sel?' sel':'')} onClick={()=>{ if(G.busy||G.active!==me)return; setSel(sel?null:{id:c.id,from:z}) }}>{CARD(c).art}</div>
+  return <div key={z+i} className={'slot t-'+CARD(c).type+' '+z+(sel?' sel':'')}
+    onPointerDown={(e)=>{ if(G.busy||G.active!==me)return; onPickPocket&&onPickPocket(e,c,z) }}
+    onClick={()=>{ if(G.busy||G.active!==me)return; setSel(sel?null:{id:c.id,from:z}) }}>{CARD(c).art}</div>
 }
 const hpCol=s=>{const p=s.hp/s.max; return p>.5?'#4caf50':p>.25?'#ff9800':'#f44336'}
 const costLbl=(s,c)=>{const d=CARD(c); if(d.type==='food')return '+'+(d.gain||1)+'🍖'; if(d.type==='soda')return '+1⚡'; return E.costOf(s,c)+'🍖'}

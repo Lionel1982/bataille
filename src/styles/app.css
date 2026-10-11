@@ -518,3 +518,19 @@ img{max-width:100%}
 .bottombar{flex:none;display:flex;align-items:flex-end;justify-content:space-between;gap:5px;padding:6px 8px;border-top:3px solid #111;background:#fff}
 .bottombar .stack{display:flex;flex-direction:column;align-items:center;font-size:10px}
 .bottombar #endBtn{align-self:center}
+
+/* ===== v0.12.3 : cadre compact + preview agrandi + drag ===== */
+.infozone .actbar.compact{padding:6px 8px}
+.infozone .actbar.compact .actbtns{margin-top:0}
+
+/* preview agrandi de la carte selectionnee (centre dans la zone main) */
+.cardpreview{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%) scale(1.35);z-index:70;pointer-events:none;filter:drop-shadow(0 6px 14px rgba(0,0,0,.4))}
+.cardpreview .card{position:relative;left:auto;bottom:auto;margin:0;box-shadow:0 0 0 4px #fff,0 0 22px 8px #ffe600}
+/* pendant le drag : la carte suit le doigt (position fixee en inline), un peu plus petite */
+.cardpreview.dragging{position:fixed;top:0;left:0;transition:none;opacity:.95}
+
+/* indices de zones pendant un drag */
+.scene.droptarget{box-shadow:inset 0 0 0 4px #4caf50}
+.bottombar.droptarget{box-shadow:inset 0 0 0 4px #2196f3}
+
+.card,.slot{touch-action:none}

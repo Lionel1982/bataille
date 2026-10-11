@@ -2,7 +2,7 @@ import { FAMILIES, FOODS } from '../data/cards.js'
 import * as E from '../game/engine.js'
 import { cardArtUrl, hasCardArt } from '../assets/cardArt.js'
 
-export default function Card({ card, side, style, disabled, selected, onClick }){
+export default function Card({ card, side, style, disabled, selected, onClick, onPointerDown }){
   const spellCost = (side && card._key) ? E.costOf(side,{key:card._key}) : (card.cost||0)
   const cost = card.type==='food' ? '+'+(card.gain||1)+'🍖'
             : card.type==='soda' ? '+1⚡'
@@ -13,7 +13,7 @@ export default function Card({ card, side, style, disabled, selected, onClick })
   const hasImg = card._key && hasCardArt(card._key)
   return (
     <div className={'card t-'+card.type+(card.target==='pote'?' pote':'')+(card.big?' bigc':'')+(bonus?' fav':'')+(disabled?' disabled':'')+(selected?' sel':'')}
-         style={style} onClick={onClick}>
+         style={style} onClick={onClick} onPointerDown={onPointerDown}>
       {/* Haut : nom a gauche, cout a droite */}
       <div className="chead">
         <span className="cname">{card.n}</span>
