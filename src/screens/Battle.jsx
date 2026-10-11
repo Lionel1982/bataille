@@ -95,7 +95,7 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
     const s=G.opp, t=G.me
     if(a.kind==='play'){
       G.busy=true; force()
-      const card = CARDS[a.key]
+      const card = CARD({key:a.key})
       // retirer une carte equivalente de la main/poches de opp (on gere opp "en aveugle")
       removeOneFromOpp(s, a.key, a.from)
       s.pa=Math.max(0,s.pa-E.paCostOf({key:a.key}))

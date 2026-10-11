@@ -34,3 +34,13 @@ COMMENT CA MARCHE
 
   Apres avoir ajoute des fichiers, pour la version en ligne : relance
   3-ENVOYER-GITHUB.bat (Vercel redeploie).
+
+
+IMPORTANT - ACTIVER UN SPRITE DEPOSE
+------------------------------------
+Pour que le jeu utilise TON image au lieu de celle integree, apres avoir depose
+le fichier (ex: public/sprites/familiers/chien.png), ouvre le fichier
+  src/assets/customSprites.js
+et ajoute la cle dans la bonne liste, ex :
+  familiers: ['chien']
+Ainsi, pas de requete inutile (404) pour les sprites que tu n'as pas remplaces.
