@@ -9,6 +9,8 @@ export default function Shop({ auth, onBack }){
   const [busy,setBusy] = useState('')
   const [err,setErr] = useState('')
   const [reveal,setReveal] = useState(null)   // resultat booster { got, refunded }
+  const [opening,setOpening] = useState(false)
+  const [detailCard,setDetailCard] = useState(null)
 
   useEffect(()=>{ (async()=>{ setWallet(await loadWallet()) })() },[])
 
@@ -39,7 +41,8 @@ export default function Shop({ auth, onBack }){
     try{
       const r=await openBooster(SHOP_CARDS, FINISHERS, BOOSTER_REFUND)
       setWallet({ points:r.points, collection:r.collection })
-      setReveal({ got:r.got||[], refunded:r.refunded||0 })
+      setOpening(true)                       // animation du paquet qui s'ouvre
+      setTimeout(()=>{ setOpening(false); setReveal({ got:r.got||[], refunded:r.refunded||0 }) }, 1100)
     }catch(e){ setErr(e.message||'Erreur') }
     setBusy('')
   }
@@ -71,15 +74,36 @@ export default function Shop({ auth, onBack }){
         })}
       </div>
 
-      {/* Reveal booster */}
+      {/* Animation d'ouverture du paquet */}
+      {opening && <div className="cardzoom"><div className="packwrap"><div className="pack"><div className="packlid"/><div className="packbody">🎁</div><div className="packburst"/></div><div className="packhint">Ouverture…</div></div></div>}
+
+      {/* Reveal booster : cartes cliquables */}
       {reveal && <div className="cardzoom" onClick={()=>setReveal(null)}>
-        <div className="boosterreveal">
+        <div className="boosterreveal" onClick={e=>e.stopPropagation()}>
           <h3>🎁 Ton booster</h3>
           <div className="brow">
-            {reveal.got.map((k,i)=>(<div className="bcard" key={i} style={{animationDelay:(i*0.15)+'s'}}><div className="art">{CARDS[k]?.art}</div><div className="nm">{CARDS[k]?.n}</div></div>))}
+            {reveal.got.map((k,i)=>(
+              <div className="bcard" key={i} style={{animationDelay:(i*0.18)+'s'}} onClick={()=>setDetailCard(k)}>
+                <div className="art">{CARDS[k]?.art}</div><div className="nm">{CARDS[k]?.n}</div>
+                <div className="tap">voir</div>
+              </div>))}
           </div>
           {reveal.refunded>0 && <div className="refund">+{reveal.refunded} pts remboursés (doublons)</div>}
+          <div className="hint" style={{margin:'4px 0'}}>Touche une carte pour voir ce qu'elle fait.</div>
           <button className="big" onClick={()=>setReveal(null)}>SUPER !</button>
+        </div>
+      </div>}
+
+      {/* Carte en PLEIN ECRAN (detail) */}
+      {detailCard && <div className="cardzoom" style={{zIndex:120}} onClick={()=>setDetailCard(null)}>
+        <div className="cardfull" onClick={e=>e.stopPropagation()}>
+          {(()=>{ const c=CARDS[detailCard]; return (<>
+            <div className="cfart">{c.art}</div>
+            <div className="cfname">{c.n}</div>
+            <div className="cfmeta">{c.foodType?FAMILIES[c.foodType].i+' famille ':''}{c.big?'🔥 finisher ':''}{c.cost?('· '+c.cost+' 🍖 '):''}{c.paCost?('· '+c.paCost+' PA '):''}</div>
+            <div className="cftxt">{c.txt}</div>
+          </>) })()}
+          <button className="big" onClick={()=>setDetailCard(null)}>Fermer</button>
         </div>
       </div>}
     </div>

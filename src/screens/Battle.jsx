@@ -19,7 +19,7 @@ const DBG=()=>getSetting('debugLogs')!==false
 const LOG=(...a)=>{ if(DBG()) console.log('%c[BDP]','color:#ff3fb4;font-weight:bold',...a) }
 const SNAP=(s)=> s?({hp:s.hp+'/'+s.max,deck:s.deck.length,hand:s.hand.length,disc:s.discard.length,food:s.food+'/'+s.foodMax,fx:{...s.fx}}):null
 
-export default function Battle({ auth, loadout, onExit, netMatch=null }){
+export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netMatch=null }){
   const [,force] = useReducer(x=>x+1,0)
   const g = useRef(null)
   const fx = useRef(null)          // controleur d'effets visuels (Fx)
@@ -277,7 +277,7 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
       // points de boutique : +3 victoire / +1 defaite
       try{ const tot=await awardPoints(win); if(tot!=null){ G.shopPoints=tot; LOG('points boutique ->',tot) } }catch(e){ LOG('awardPoints err',e.message) }
     }
-    G.result = win; force(); return true
+    G.result = win; if(onGameOver) onGameOver(); force(); return true
   }
 
   async function aiPlay(){
@@ -371,7 +371,12 @@ export default function Battle({ auth, loadout, onExit, netMatch=null }){
           <button className="tg" onClick={()=>{fx.current?.toggleSound(); force()}}>🔊</button>
           <button className="tg" onClick={()=>setFast(f=>!f)}>{fast?'⏩ RAPIDE':'▶ RAPIDE'}</button>
           <button className="tg" onClick={()=>setPaused(p=>!p)}>{paused?'⏸ PAUSE':'▶ PAUSE'}</button>
-          <button className="tg" onClick={()=>{ LOG('retour -> ecran deck'); onExit() }}>◀ RETOUR</button>
+          {G.net
+            ? <button className="tg" onClick={()=>{ LOG('quitter partie en ligne'); onExit() }}>◀ QUITTER</button>
+            : <>
+                <button className="tg" onClick={()=>{ LOG('menu (reprendre possible)'); onHome&&onHome() }}>⌂ MENU</button>
+                <button className="tg" onClick={()=>{ LOG('abandonner'); onGameOver&&onGameOver(); onExit() }}>🏳️</button>
+              </>}
         </div>
       </div>
 

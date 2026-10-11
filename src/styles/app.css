@@ -378,3 +378,39 @@ img{max-width:100%}
 .hometop button:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #111}
 
 .verfoot{margin-top:auto;padding-top:10px;font-size:11px;opacity:.5;font-family:'Comic Neue',sans-serif;font-weight:700}
+
+/* ===== Aura d'agressivite autour du familier (v0.9.6) ===== */
+.ent.aura .spr{animation:bob 2.2s ease-in-out infinite, auraGlow 1.2s ease-in-out infinite}
+.ent.aura.flip .spr,.ent.aura .spr.flip{animation:bobm 2.2s ease-in-out infinite, auraGlow 1.2s ease-in-out infinite}
+@keyframes auraGlow{50%{filter:var(--aura)}}
+.aura1{--aura:drop-shadow(0 0 4px #ffd54f)}
+.aura2{--aura:drop-shadow(0 0 6px #ffb300) drop-shadow(0 0 10px #ff9800)}
+.aura3{--aura:drop-shadow(0 0 7px #ff7043) drop-shadow(0 0 12px #ff5722)}
+.aura4{--aura:drop-shadow(0 0 9px #ff5252) drop-shadow(0 0 16px #e53935)}
+.aura5{--aura:drop-shadow(0 0 12px #ff1744) drop-shadow(0 0 22px #d50000) drop-shadow(0 0 30px #b71c1c)}
+.ent.aura5{animation:shakeAura .5s ease-in-out infinite}
+@keyframes shakeAura{25%{transform:translateX(-2px)}75%{transform:translateX(2px)}}
+
+.tile.resume{background:linear-gradient(135deg,#4caf50,#8bc34a);color:#fff;text-shadow:2px 2px 0 #111}
+
+/* ===== Animation ouverture booster ===== */
+.packwrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.pack{position:relative;width:120px;height:160px;animation:packShake .5s ease-in-out 2}
+.packbody{width:120px;height:160px;border:4px solid #111;border-radius:12px;background:linear-gradient(135deg,#ffd54f,#ff9800);display:flex;align-items:center;justify-content:center;font-size:60px;box-shadow:5px 5px 0 #111}
+.packlid{position:absolute;top:0;left:0;right:0;height:46px;border:4px solid #111;border-bottom:none;border-radius:12px 12px 0 0;background:#ff7043;transform-origin:top;animation:lidOpen .5s .8s ease-in forwards}
+.packburst{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle,#fff59d 0%,transparent 70%);opacity:0;animation:burst .5s .9s ease-out forwards}
+.packhint{font-family:'Bangers';font-size:20px;color:#fff;text-shadow:2px 2px 0 #111}
+@keyframes packShake{25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+@keyframes lidOpen{to{transform:rotateX(-120deg);opacity:.3}}
+@keyframes burst{30%{opacity:1;transform:scale(1.4)}100%{opacity:0;transform:scale(2.4)}}
+/* carte cliquable dans le reveal */
+.bcard{position:relative;cursor:pointer}
+.bcard .tap{position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:9px;background:#111;color:#fff;font-family:'Comic Neue';font-weight:700;border-radius:0 0 7px 7px}
+.bcard:active{transform:scale(.96)}
+/* carte plein ecran (detail) */
+.cardfull{background:#fff;border:4px solid #111;border-radius:18px;padding:20px;text-align:center;max-width:86%;box-shadow:7px 7px 0 #111}
+.cardfull .cfart{font-size:90px;filter:drop-shadow(3px 3px 0 rgba(0,0,0,.25))}
+.cardfull .cfname{font-family:'Bangers';font-size:30px;margin:6px 0}
+.cardfull .cfmeta{font-size:13px;opacity:.75;margin-bottom:8px}
+.cardfull .cftxt{font-size:15px;line-height:1.4;margin-bottom:14px}
+.cardfull .big{max-width:220px}

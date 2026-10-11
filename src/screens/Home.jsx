@@ -7,7 +7,7 @@ import { getSetting } from '../lib/settings.js'
 
 // Ecran d'accueil : 4 tuiles (Jouer / Avatar / Familier / Deck).
 // 'Jouer' ouvre un sous-menu : Creer / Rejoindre / IA.
-export default function Home({ auth, ld, go, onFight, onOnline, onJoin }){
+export default function Home({ auth, ld, go, onFight, onOnline, onJoin, resumable, onResume }){
   const connected = auth.online && auth.session
   const { b } = ld
   const [playOpen,setPlayOpen] = useState(false)
@@ -33,6 +33,7 @@ export default function Home({ auth, ld, go, onFight, onOnline, onJoin }){
         <button onClick={()=>go('shop')}>🛒 Boutique</button>
       </div>
       <h1 className="hometitle">BATAILLE<br/>DE PO/ETS</h1>
+      {resumable && !playOpen && <button className="tile resume" onClick={onResume}><span className="ti">▶️</span><span className="tl">REPRENDRE LA PARTIE</span></button>}
 
       {!playOpen ? <>
         <button className="tile play" onClick={()=>setPlayOpen(true)}>

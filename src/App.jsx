@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from './lib/useAuth.js'
 import { useLoadout } from './lib/useLoadout.js'
 import Auth from './screens/Auth.jsx'
@@ -15,20 +15,37 @@ import Account from './screens/Account.jsx'
 export default function App(){
   const auth = useAuth()
   const ld = useLoadout()
-  const [screen,setScreen] = useState('home')   // home|avatar|familier|deck|battle|online|lead|shop|auth
+  const [screen,setScreenRaw] = useState('home')
   const [loadout,setLoadout] = useState(null)
   const [netMatch,setNetMatch] = useState(null)
-  const [onlineMode,setOnlineMode] = useState('menu')  // 'create' | 'join'
+  const [onlineMode,setOnlineMode] = useState('menu')
+  const [resumable,setResumable] = useState(false)   // une partie IA est-elle en cours ?
+  const [battleKey,setBattleKey] = useState(0)        // force un remount a chaque nouvelle partie
+  const screenRef = useRef('home'); screenRef.current = screen
+
+  // Navigation + bouton RETOUR du telephone (API history).
+  function go(s){ setScreenRaw(s); try{ history.pushState({s},'') }catch(e){} }
+  const setScreen = go
+  useEffect(()=>{
+    try{ history.replaceState({s:'home'},'') }catch(e){}
+    const onPop = ()=>{
+      // bouton retour tel : revenir a l'accueil au lieu de quitter l'appli
+      const cur = screenRef.current
+      if(cur==='home'){ try{ history.pushState({s:'home'},'') }catch(e){} }  // bloque la sortie
+      else { setScreenRaw('home'); try{ history.pushState({s:'home'},'') }catch(e){} }
+    }
+    window.addEventListener('popstate', onPop)
+    return ()=> window.removeEventListener('popstate', onPop)
+  },[])
 
   if(auth.loading) return <div className="phone"><div className="auth"><h1>⚔️</h1></div></div>
   if(screen==='auth') return <div className="phone"><Auth auth={auth} onBack={()=>setScreen('home')} /></div>
 
-  const connected = auth.online && auth.session
   return (
     <div className="phone">
-      
       {screen==='home' && <Home auth={auth} ld={ld} go={setScreen}
-        onFight={(cfg)=>{ setLoadout(cfg); setNetMatch(null); setScreen('battle') }}
+        resumable={resumable} onResume={()=>setScreen('battle')}
+        onFight={(cfg)=>{ setLoadout(cfg); setNetMatch(null); setResumable(true); setBattleKey(k=>k+1); setScreen('battle') }}
         onOnline={(cfg)=>{ setLoadout(cfg); setOnlineMode('create'); setScreen('online') }}
         onJoin={(cfg)=>{ setLoadout(cfg); setOnlineMode('join'); setScreen('online') }} />}
 
@@ -36,10 +53,18 @@ export default function App(){
       {screen==='familier' && <FamilierScreen ld={ld} onBack={()=>setScreen('home')} />}
       {screen==='deck'     && <DeckScreen     ld={ld} onBack={()=>setScreen('home')} />}
 
-      {screen==='battle' && <Battle auth={auth} loadout={loadout} netMatch={netMatch}
-        onExit={()=>{ setNetMatch(null); setScreen('home') }} />}
+      {/* La bataille reste MONTEE quand on va au menu (display:none) pour pouvoir REPRENDRE (solo IA). */}
+      {(screen==='battle' || resumable) && (
+        <div style={{display: screen==='battle'?'block':'none', position:'absolute', inset:0}}>
+          <Battle key={battleKey} auth={auth} loadout={loadout} netMatch={netMatch}
+            onExit={()=>{ setNetMatch(null); setResumable(false); setScreen('home') }}
+            onHome={()=>setScreen('home')}
+            onGameOver={()=>setResumable(false)} />
+        </div>
+      )}
+
       {screen==='online' && <Online auth={auth} loadout={loadout} startMode={onlineMode}
-        onStart={(match,role)=>{ setNetMatch({match,role}); setScreen('battle') }}
+        onStart={(match,role)=>{ setNetMatch({match,role}); setResumable(false); setBattleKey(k=>k+1); setScreen('battle') }}
         onBack={()=>setScreen('home')} />}
       {screen==='lead'  && <Leaderboard auth={auth} onBack={()=>setScreen('home')} onLogin={()=>setScreen('auth')} />}
       {screen==='shop'  && <Shop auth={auth} onBack={()=>setScreen('home')} />}

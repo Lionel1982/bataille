@@ -89,6 +89,13 @@ export const CARDS={
   dresse:{n:'Dressage dur',art:'🥊',type:'spell',cost:0,pts:3,target:'self',brime:15,brimeAggro:1,anim:'taunt',fx:'AU PIED !',col:'#8d6e63',txt:'+1 agressivite mais -15 confiance (brimade).'},
   steak:{n:'Steak cru',art:'🥩',type:'spell',cost:2,pts:4,target:'self',aggro:1,calin:10,anim:'heal',fx:'MIAM !',col:'#d84315',txt:'+10 confiance ET +1 agressivite (la bonne recompense).'},
   rollers:{n:'Rollers',art:'🛼',type:'spell',cost:0,pts:4,target:'self',pa:1,anim:'heal',fx:'ZOOM !',col:'#26c6da',txt:'+1 point d\'action ce tour (goofy).'},
+  // --- NOUVELLES CARTES D'AGRESSIVITE (v0.9.6) ---
+  grognement:{n:'Grognement',art:'😤',type:'spell',cost:1,pts:3,target:'self',aggro:1,anim:'taunt',fx:'GRRR !',col:'#ff7043',txt:'+1 agressivite. Le familier montre les crocs.'},
+  provoc:{n:'Provocation',art:'👊',type:'spell',cost:0,pts:4,target:'self',brime:5,brimeAggro:2,anim:'taunt',fx:'VAS-Y !',col:'#e53935',txt:'+2 agressivite mais -5 confiance (tu le pousses a bout).'},
+  viande:{n:'Viande saignante',art:'🍖',type:'spell',cost:2,pts:5,target:'self',aggro:2,calin:5,anim:'heal',fx:'GROAR !',col:'#c62828',txt:'+2 agressivite, +5 confiance. Reveille l instinct.'},
+  arene:{n:'Esprit d arene',art:'🔥',type:'spell',cost:3,pts:7,target:'self',aggro:3,anim:'taunt',fx:'RAGE !',col:'#d50000',big:0,txt:'+3 agressivite d un coup. Le familier entre en transe.'},
+  tambour:{n:'Tambour de guerre',art:'🥁',type:'spell',cost:1,paCost:2,pts:5,target:'self',aggro:1,pa:0,anim:'taunt',fx:'BOUM !',col:'#8d6e63',txt:'2 PA. +1 agressivite a toi ET a aucun autre (rythme de combat).'},
+
   accelo:{n:'Accelerateur poison',art:'💉',type:'spell',cost:0,pts:4,target:'self',pa:1,selfhurt:4,anim:'taunt',fx:'AARGH !',col:'#7e57c2',txt:'+1 PA ce tour mais -4 PV perso.'},
   concentre:{n:'Concentration',art:'🎯',type:'spell',cost:1,pts:3,target:'self',aim:1,anim:'heal',fx:'FOCUS !',col:'#1e88e5',txt:'+precision (monte la jauge).'},
   croc:{n:'Croc-en-jambe',art:'🦵',type:'spell',cost:2,pts:4,target:'choose',dmg:9,anim:'slide',fx:'PAF !',col:'#ff7043',txt:'9 degats. Tu choisis la cible : familier OU perso.'},
