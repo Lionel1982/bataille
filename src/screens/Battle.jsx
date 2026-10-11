@@ -33,7 +33,6 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
   const [tryMsg,setTryMsg] = useState('')   // raison d'impossibilite, affichee seulement apres clic JOUER
   const [drag,setDrag] = useState(null)   // glisser-deposer carte : {x,y,moved} ou null
   const dragRef = useRef(null)
-  const justDragged = useRef(false)
   // drag listeners : suivre le doigt/souris sur toute la fenetre pendant un glisser
   useEffect(()=>{
     if(!drag) return
@@ -314,25 +313,22 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
   // ===== Glisser-deposer d'une carte (tactile + souris via pointer events) =====
   function dragStart(e, card, from){
     if(g.current.busy || !mine) return
-    // on NE selectionne PAS ici (le onClick gere le tap). On arme juste un drag potentiel.
+    g.current.sel = { id:card.id, from }; setTryMsg('')
     const p = e.touches ? e.touches[0] : e
     dragRef.current = { id:card.id, from, startX:p.clientX, startY:p.clientY, moved:false }
+    setDrag({ x:p.clientX, y:p.clientY, moved:false })
+    force()
   }
   function dragMove(e){
     const d = dragRef.current; if(!d) return
     const p = e.touches ? e.touches[0] : e
     const moved = d.moved || Math.abs(p.clientX-d.startX)>8 || Math.abs(p.clientY-d.startY)>8
-    if(moved && !d.moved){            // on vient de passer en vrai DRAG : selectionner + ouvrir l'apercu
-      d.moved = true
-      g.current.sel = { id:d.id, from:d.from }; setTryMsg('')
-    }
     d.moved = moved
     setDrag({ x:p.clientX, y:p.clientY, moved })
   }
   function dragEnd(e){
     const d = dragRef.current; dragRef.current=null
     if(!d){ setDrag(null); return }
-    justDragged.current = !!d.moved
     const p = (e.changedTouches ? e.changedTouches[0] : e)
     const card = (d.from==='hand'?g.current.me.hand:g.current.me[d.from]).find(x=>x.id===d.id)
     const sceneEl = document.getElementById('scene')
@@ -475,7 +471,7 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
             const tr = sel?`translate(${off*66}px,-30px) scale(1.0)`:`translate(${off*66}px,${off*off*5}px) rotate(${off*6}deg)`
             return <Card key={c.id} card={CARD(c)} side={me} style={{transform:tr, visibility:sel?'hidden':'visible'}} disabled={mine&&(!!E.whyNot(me,c)||E.paCostOf(c)>me.pa)} selected={sel}
                      onPointerDown={(e)=>dragStart(e,c,'hand')}
-                     onClick={()=>{ if(justDragged.current){justDragged.current=false;return} if(G.busy||!mine)return; g.current.sel=sel?null:{id:c.id,from:'hand'}; force() }}/>
+                     onClick={()=>{ if(G.busy||!mine)return; g.current.sel=sel?null:{id:c.id,from:'hand'}; force() }}/>
           }) : <div className="handmsg">{mine?'Main vide → FIN DU TOUR':'Alex reflechit… 🤔'}</div>}
         </div>
 
@@ -492,8 +488,8 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
       <div className="bottombar">
         <div className="stack"><div className="pile">{me.deck.length}</div>Pioche</div>
         <div className="stack"><div className="slots">
-          {Array.from({length:me.backMax}).map((_,i)=>slot(me,'back',i,G,setSel,dragStart,justDragged))}
-          {Array.from({length:me.frontMax}).map((_,i)=>slot(me,'front',i,G,setSel,dragStart,justDragged))}
+          {Array.from({length:me.backMax}).map((_,i)=>slot(me,'back',i,G,setSel,dragStart))}
+          {Array.from({length:me.frontMax}).map((_,i)=>slot(me,'front',i,G,setSel,dragStart))}
         </div>👖 Poches</div>
         <div className="stack"><div className="pile disc">{me.discard.length}</div>Defausse</div>
         <button id="endBtn" disabled={G.busy||!mine} onClick={()=>!G.busy&&mine&&endTurn()}>FIN DU<br/>TOUR ▶</button>
@@ -526,14 +522,14 @@ export default function Battle({ auth, loadout, onExit, onHome, onGameOver, netM
   function setSel(sel){ g.current.sel=sel; setTryMsg(''); force() }
 }
 
-function slot(me,z,i,G,setSel,onPickPocket,jd){
+function slot(me,z,i,G,setSel,onPickPocket){
   const c=me[z][i]
   if(!c) return <div key={z+i} className={'slot empty '+z}>vide</div>
   const sel=G.sel&&G.sel.id===c.id
   return <div key={z+i} className={'slot t-'+CARD(c).type+' '+z+(sel?' sel':'')}
     style={sel?{visibility:'hidden'}:undefined}
     onPointerDown={(e)=>{ if(G.busy||G.active!==me)return; onPickPocket&&onPickPocket(e,c,z) }}
-    onClick={()=>{ if(jd&&jd.current){jd.current=false;return} if(G.busy||G.active!==me)return; setSel(sel?null:{id:c.id,from:z}) }}>{CARD(c).art}</div>
+    onClick={()=>{ if(G.busy||G.active!==me)return; setSel(sel?null:{id:c.id,from:z}) }}>{CARD(c).art}</div>
 }
 const hpCol=s=>{const p=s.hp/s.max; return p>.5?'#4caf50':p>.25?'#ff9800':'#f44336'}
 const costLbl=(s,c)=>{const d=CARD(c); if(d.type==='food')return '+'+(d.gain||1)+'🍖'; if(d.type==='soda')return '+1⚡'; return E.costOf(s,c)+'🍖'}

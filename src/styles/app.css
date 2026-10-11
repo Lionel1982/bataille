@@ -534,3 +534,9 @@ img{max-width:100%}
 .bottombar.droptarget{box-shadow:inset 0 0 0 4px #2196f3}
 
 .card,.slot{touch-action:none}
+
+/* ===== v0.12.5 : picto COUT = carres PA jaunes + nourriture ===== */
+.card .ccost{display:flex;align-items:center;gap:3px}
+.pacube{display:inline-block;width:12px;height:12px;background:#ffe600;border:2px solid #111;border-radius:3px}
+.card .ccost .foodcost{font-family:'Bangers';font-size:13px;margin-left:2px}
+.card .ccost .freecost{font-family:'Bangers';font-size:13px;opacity:.6}
